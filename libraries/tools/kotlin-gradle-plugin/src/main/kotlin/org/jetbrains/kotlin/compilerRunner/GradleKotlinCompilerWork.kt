@@ -32,14 +32,12 @@ import javax.inject.Inject
 
 internal class ProjectFilesForCompilation(
     val projectRootFile: File,
-    val projectBuildDir:File,
     val clientIsAliveFlagFile: File,
     val sessionFlagFile: File,
     val project: Project
 ) : Serializable {
     constructor(project: Project) : this(
         projectRootFile = project.rootProject.projectDir,
-        projectBuildDir = project.buildDir,
         clientIsAliveFlagFile = GradleCompilerRunner.getOrCreateClientFlagFile(project),
         sessionFlagFile = GradleCompilerRunner.getOrCreateSessionFlagFile(project),
         project = project
@@ -102,7 +100,6 @@ internal class GradleKotlinCompilerWork @Inject constructor(
     private val buildReportMode = config.buildReportMode
     private val kotlinScriptExtensions = config.kotlinScriptExtensions
     private val allWarningsAsErrors = config.allWarningsAsErrors
-    private val projectBuildDir = config.projectFiles.projectBuildDir
     private val project = config.projectFiles.project
 
     private val log: KotlinLogger =
@@ -309,7 +306,7 @@ internal class GradleKotlinCompilerWork @Inject constructor(
                     runToolInSeparateProcessForGradle6AndMore(compilerArgs, compilerClassName, compilerFullClasspath, project)
                 exitCodeFromProcessExitCode(log, execResult.exitValue)
             } else {
-                runToolInSeparateProcess(compilerArgs, compilerClassName, compilerFullClasspath, log, projectBuildDir)
+                runToolInSeparateProcess(compilerArgs, compilerClassName, compilerFullClasspath, log, project.buildDir)
             }
         } finally {
             reportExecutionResultIfNeeded {

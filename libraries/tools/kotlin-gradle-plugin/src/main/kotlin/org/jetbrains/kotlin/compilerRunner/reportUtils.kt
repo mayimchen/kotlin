@@ -33,6 +33,8 @@ import org.jetbrains.org.objectweb.asm.ClassVisitor
 import org.jetbrains.org.objectweb.asm.FieldVisitor
 import org.jetbrains.org.objectweb.asm.Opcodes
 import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.zip.ZipFile
 import kotlin.concurrent.thread
 
@@ -139,8 +141,8 @@ internal fun runToolInSeparateProcess(
     return exitCodeFromProcessExitCode(logger, exitCode)
 }
 
-private fun writeArgumentsToFile(dir: File, argsArray: Array<String>): File {
-    val compilerOptions = dir.resolve("compiler.options")
+private fun writeArgumentsToFile(directory: File, argsArray: Array<String>): File {
+    val compilerOptions = File.createTempFile(LocalDateTime.now().format(DateTimeFormatter.BASIC_ISO_DATE) + "_", ".compiler.options", directory)
     compilerOptions.writeText(argsArray.joinToString(" "))
     return compilerOptions
 }
