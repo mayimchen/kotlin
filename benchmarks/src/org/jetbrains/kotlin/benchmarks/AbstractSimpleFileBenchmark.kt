@@ -134,7 +134,7 @@ abstract class AbstractSimpleFileBenchmark {
     private fun analyzeGreenFileFrontend(bh: Blackhole) {
         val tracker = ExceptionTracker()
         val storageManager: StorageManager =
-                LockBasedStorageManager.createWithExceptionHandling("benchmarks", tracker)
+                LockBasedStorageManager.createWithExceptionHandling("benchmarks", tracker) {}
 
         val context = SimpleGlobalContext(storageManager, tracker)
         val module =

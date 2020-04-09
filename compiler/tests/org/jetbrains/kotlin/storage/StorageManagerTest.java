@@ -418,7 +418,7 @@ public class StorageManagerTest extends TestCase {
 
         LockBasedStorageManager m = LockBasedStorageManager.createWithExceptionHandling("StorageManagerTest", throwable -> {
             throw new RethrownException();
-        });
+        }, () -> null);
         try {
             m.createLazyValue(() -> {
                 throw new RuntimeException();
@@ -434,7 +434,7 @@ public class StorageManagerTest extends TestCase {
 
         LockBasedStorageManager m = LockBasedStorageManager.createWithExceptionHandling("StorageManagerTest", throwable -> {
             throw new RethrownException();
-        });
+        }, () -> null);
         try {
             m.createMemoizedFunction(o -> {
                 throw new RuntimeException();
