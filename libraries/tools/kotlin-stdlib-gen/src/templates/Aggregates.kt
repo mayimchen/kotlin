@@ -1603,7 +1603,7 @@ object Aggregates : TemplateGroupBase() {
 
     val f_onEachIndexed = fn("onEachIndexed(action: (index: Int, T) -> Unit)") {
         includeDefault()
-        include(CharSequences, ArraysOfUnsigned)
+        include(Maps, CharSequences, ArraysOfUnsigned)
     } builder {
         since("1.4")
 
@@ -1622,16 +1622,17 @@ object Aggregates : TemplateGroupBase() {
             body { "return apply { forEachIndexed(action) }" }
         }
 
-        specialFor(Iterables, CharSequences) {
+        specialFor(Maps, Iterables, CharSequences) {
             inline()
             val collectionType = when (f) {
+                Maps -> "M"
                 CharSequences -> "S"
                 else -> "C"
             }
             receiver(collectionType)
             returns(collectionType)
             typeParam("$collectionType : SELF")
-            body { "return apply { forEachIndexed(action) }" }
+            body { "return apply { ${if (f == Maps) "entries." else ""}forEachIndexed(action) }" }
         }
 
         specialFor(Sequences) {
