@@ -9,10 +9,8 @@ package org.jetbrains.kotlin.backend.common.lower.inline
 import org.jetbrains.kotlin.backend.common.*
 import org.jetbrains.kotlin.backend.common.ir.Symbols
 import org.jetbrains.kotlin.backend.common.ir.createTemporaryVariableWithWrappedDescriptor
-import org.jetbrains.kotlin.backend.common.lower.CoroutineIntrinsicLambdaOrigin
 import org.jetbrains.kotlin.backend.common.lower.createIrBuilder
 import org.jetbrains.kotlin.config.languageVersionSettings
-import org.jetbrains.kotlin.descriptors.ValueDescriptor
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
@@ -31,7 +29,39 @@ import org.jetbrains.kotlin.ir.visitors.IrElementVisitor
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.util.OperatorNameConventions
 
-class FunctionInlining(val context: CommonBackendContext) : IrElementTransformerVoidWithContext(), BodyLoweringPass {
+fun IrValueParameter.isInlineParameter(type: IrType = this.type) =
+    index >= 0 && !isNoinline && !type.isNullable() && (type.isFunction() || type.isSuspendFunction())
+
+interface InlineFunctionResolver {
+    fun getFunctionDeclaration(symbol: IrFunctionSymbol): IrFunction
+}
+
+open class DefaultInlineFunctionResolver(open val context: CommonBackendContext) : InlineFunctionResolver {
+    override fun getFunctionDeclaration(symbol: IrFunctionSymbol): IrFunction {
+        val descriptor = symbol.descriptor.original
+        val languageVersionSettings = context.configuration.languageVersionSettings
+        // TODO: Remove these hacks when coroutine intrinsics are fixed.
+        return when {
+            descriptor.isBuiltInIntercepted(languageVersionSettings) ->
+                error("Continuation.intercepted is not available with release coroutines")
+
+            descriptor.isBuiltInSuspendCoroutineUninterceptedOrReturn(languageVersionSettings) ->
+                context.ir.symbols.suspendCoroutineUninterceptedOrReturn.owner
+
+            symbol == context.ir.symbols.coroutineContextGetter ->
+                context.ir.symbols.coroutineGetContext.owner
+
+            else -> (symbol.owner as? IrSimpleFunction)?.resolveFakeOverride() ?: symbol.owner
+        }
+    }
+}
+
+class FunctionInlining(
+    val context: CommonBackendContext,
+    val inlineFunctionResolver: InlineFunctionResolver
+) : IrElementTransformerVoidWithContext(), BodyLoweringPass {
+
+    constructor(context: CommonBackendContext): this(context, DefaultInlineFunctionResolver(context))
 
     private var containerScope: ScopeWithIr? = null
 
@@ -60,7 +90,7 @@ class FunctionInlining(val context: CommonBackendContext) : IrElementTransformer
         if (Symbols.isTypeOfIntrinsic(callee.symbol))
             return expression
 
-        val actualCallee = getFunctionDeclaration(callee.symbol)
+        val actualCallee = inlineFunctionResolver.getFunctionDeclaration(callee.symbol)
 
         val parent = allScopes.map { it.irElement }.filterIsInstance<IrDeclarationParent>().lastOrNull()
             ?: allScopes.map { it.irElement }.filterIsInstance<IrDeclaration>().lastOrNull()?.parent
@@ -69,24 +99,6 @@ class FunctionInlining(val context: CommonBackendContext) : IrElementTransformer
 
         val inliner = Inliner(expression, actualCallee, currentScope ?: containerScope!!, parent, context)
         return inliner.inline()
-    }
-
-    private fun getFunctionDeclaration(symbol: IrFunctionSymbol): IrFunction {
-        val descriptor = symbol.descriptor.original
-        val languageVersionSettings = context.configuration.languageVersionSettings
-        // TODO: Remove these hacks when coroutine intrinsics are fixed.
-        return when {
-            descriptor.isBuiltInIntercepted(languageVersionSettings) ->
-                error("Continuation.intercepted is not available with release coroutines")
-
-            descriptor.isBuiltInSuspendCoroutineUninterceptedOrReturn(languageVersionSettings) ->
-                context.ir.symbols.suspendCoroutineUninterceptedOrReturn.owner
-
-            symbol == context.ir.symbols.coroutineContextGetter ->
-                context.ir.symbols.coroutineGetContext.owner
-
-            else -> (symbol.owner as? IrSimpleFunction)?.resolveFakeOverride() ?: symbol.owner
-        }
     }
 
     private val IrFunction.needsInlining get() = this.isInline && !this.isExternal
@@ -158,7 +170,7 @@ class FunctionInlining(val context: CommonBackendContext) : IrElementTransformer
                 endOffset = callSite.endOffset,
                 type = callSite.type,
                 symbol = irReturnableBlockSymbol,
-                origin = if (isCoroutineIntrinsicCall) CoroutineIntrinsicLambdaOrigin else null,
+                origin = null,
                 statements = statements,
                 inlineFunctionSymbol = callee.symbol
             ).apply {
@@ -319,9 +331,6 @@ class FunctionInlining(val context: CommonBackendContext) : IrElementTransformer
         }
 
         //-------------------------------------------------------------------------//
-
-        private fun IrValueParameter.isInlineParameter() =
-            !isNoinline && !type.isNullable() && (type.isFunction() || type.isSuspendFunction())
 
         private inner class ParameterToArgument(
             val parameter: IrValueParameter,

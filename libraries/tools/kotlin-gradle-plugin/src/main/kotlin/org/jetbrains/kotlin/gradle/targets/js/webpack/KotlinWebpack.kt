@@ -125,6 +125,9 @@ open class KotlinWebpack : DefaultTask(), RequiresNpmDependencies {
     @Input
     var sourceMaps: Boolean = true
 
+    @Nested
+    val cssSettings: KotlinWebpackCssSettings = KotlinWebpackCssSettings()
+
     @Input
     @Optional
     var devServer: KotlinWebpackConfig.DevServer? = null
@@ -146,6 +149,7 @@ open class KotlinWebpack : DefaultTask(), RequiresNpmDependencies {
             outputFileName = outputFileName,
             configDirectory = configDirectory,
             bundleAnalyzerReportDir = if (report) reportDir else null,
+            cssSettings = cssSettings,
             devServer = devServer,
             devtool = devtool,
             sourceMaps = sourceMaps,

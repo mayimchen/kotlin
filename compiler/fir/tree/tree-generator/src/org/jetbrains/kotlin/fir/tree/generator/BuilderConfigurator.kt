@@ -125,6 +125,7 @@ object BuilderConfigurator : AbstractBuilderConfigurator<FirTreeBuilder>(FirTree
 
         builder(componentCall) {
             parents += callBuilder
+            defaultNoReceivers(notNullExplicitReceiver = true)
             default("argumentList") {
                 value = "FirEmptyArgumentList"
             }
@@ -261,6 +262,10 @@ object BuilderConfigurator : AbstractBuilderConfigurator<FirTreeBuilder>(FirTree
         builder(checkNotNullCall) {
             default("calleeReference", "FirStubReference")
             useTypes(stubReferenceType)
+        }
+
+        builder(anonymousInitializer) {
+            default("symbol", "FirAnonymousInitializerSymbol()")
         }
 
         val elementsWithDefaultTypeRef = listOf(

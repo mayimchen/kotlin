@@ -59,7 +59,6 @@ internal abstract class KotlinNativeToolRunner(
             "java.library.path" to "${project.konanHome}/konan/nativelib"
         )
     }
-    final override val systemPropertiesBlacklist = setOf("java.endorsed.dirs")
 
     final override val classpath by lazy {
         project.fileTree("${project.konanHome}/konan/lib/").apply { include("*.jar") }.toSet()
@@ -81,8 +80,8 @@ internal abstract class KotlinNativeToolRunner(
     final override fun getCustomJvmArgs() = project.jvmArgs
 }
 
-/** Kotlin/Native C-interop tool runner */
-internal class KotlinNativeCInteropRunner(project: Project) : KotlinNativeToolRunner("cinterop", project) {
+/** A common ancestor for all runners that run the cinterop tool. */
+internal abstract class AbstractKotlinNativeCInteropRunner(toolName: String, project: Project) : KotlinNativeToolRunner(toolName, project) {
     override val mustRunViaExec get() = true
 
     override val environment by lazy {
@@ -110,6 +109,9 @@ internal class KotlinNativeCInteropRunner(project: Project) : KotlinNativeToolRu
     }
 }
 
+/** Kotlin/Native C-interop tool runner */
+internal class KotlinNativeCInteropRunner(project: Project) : AbstractKotlinNativeCInteropRunner("cinterop", project)
+
 /** Kotlin/Native compiler runner */
 internal class KotlinNativeCompilerRunner(project: Project) : KotlinNativeToolRunner("konanc", project) {
     private val useArgFile get() = project.disableKonanDaemon
@@ -136,4 +138,12 @@ internal class KotlinNativeCompilerRunner(project: Project) : KotlinNativeToolRu
 /** Klib management tool runner */
 internal class KotlinNativeKlibRunner(project: Project) : KotlinNativeToolRunner("klib", project) {
     override val mustRunViaExec get() = project.disableKonanDaemon
+}
+
+/** Platform libraries generation tool. Runs the cinterop tool under the hood. */
+internal class KotlinNativeLibraryGenerationRunner(project: Project) :
+    AbstractKotlinNativeCInteropRunner("generatePlatformLibraries", project)
+{
+    // The library generator works for a long time so enabling C2 can improve performance.
+    override val disableC2: Boolean = false
 }

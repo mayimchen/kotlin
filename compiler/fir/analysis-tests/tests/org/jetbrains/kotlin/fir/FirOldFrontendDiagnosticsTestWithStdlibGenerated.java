@@ -742,6 +742,11 @@ public class FirOldFrontendDiagnosticsTestWithStdlibGenerated extends AbstractFi
                 runTest("compiler/testData/diagnostics/testsWithStdLib/annotations/jvmStatic/localFun_LL13.kt");
             }
 
+            @TestMetadata("mainInObject.kt")
+            public void testMainInObject() throws Exception {
+                runTest("compiler/testData/diagnostics/testsWithStdLib/annotations/jvmStatic/mainInObject.kt");
+            }
+
             @TestMetadata("property.kt")
             public void testProperty() throws Exception {
                 runTest("compiler/testData/diagnostics/testsWithStdLib/annotations/jvmStatic/property.kt");
@@ -1906,6 +1911,11 @@ public class FirOldFrontendDiagnosticsTestWithStdlibGenerated extends AbstractFi
             runTest("compiler/testData/diagnostics/testsWithStdLib/inference/kt36249.kt");
         }
 
+        @TestMetadata("kt37627.kt")
+        public void testKt37627() throws Exception {
+            runTest("compiler/testData/diagnostics/testsWithStdLib/inference/kt37627.kt");
+        }
+
         @TestMetadata("kt4975.kt")
         public void testKt4975() throws Exception {
             runTest("compiler/testData/diagnostics/testsWithStdLib/inference/kt4975.kt");
@@ -2382,6 +2392,11 @@ public class FirOldFrontendDiagnosticsTestWithStdlibGenerated extends AbstractFi
         @TestMetadata("kt34391.kt")
         public void testKt34391() throws Exception {
             runTest("compiler/testData/diagnostics/testsWithStdLib/regression/kt34391.kt");
+        }
+
+        @TestMetadata("kt37554.kt")
+        public void testKt37554() throws Exception {
+            runTest("compiler/testData/diagnostics/testsWithStdLib/regression/kt37554.kt");
         }
 
         @TestMetadata("kt9820_javaFunctionTypeInheritor.kt")

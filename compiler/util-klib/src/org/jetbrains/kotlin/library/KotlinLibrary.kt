@@ -16,6 +16,7 @@ const val KLIB_PROPERTY_PACKAGE = "package"
 const val KLIB_PROPERTY_INTEROP = "interop"
 const val KLIB_PROPERTY_EXPORT_FORWARD_DECLARATIONS = "exportForwardDeclarations"
 const val KLIB_PROPERTY_BUILTINS_PLATFORM = "builtins_platform"
+const val KLIB_PROPERTY_SHORT_NAME = "short_name"
 
 /**
  * Abstractions for getting access to the information stored inside of Kotlin/Native library.
@@ -52,6 +53,9 @@ interface IrLibrary {
 val BaseKotlinLibrary.uniqueName: String
     get() = manifestProperties.getProperty(KLIB_PROPERTY_UNIQUE_NAME)!!
 
+val BaseKotlinLibrary.shortName: String?
+    get() = manifestProperties.getProperty(KLIB_PROPERTY_SHORT_NAME)
+
 val BaseKotlinLibrary.unresolvedDependencies: List<UnresolvedLibrary>
     get() = manifestProperties.propertyList(KLIB_PROPERTY_DEPENDS, escapeInQuotes = true)
         .map { UnresolvedLibrary(it, manifestProperties.getProperty("dependency_version_$it")) }
@@ -67,7 +71,3 @@ val KotlinLibrary.packageFqName: String?
 
 val KotlinLibrary.exportForwardDeclarations
     get() = manifestProperties.propertyList(KLIB_PROPERTY_EXPORT_FORWARD_DECLARATIONS, escapeInQuotes = true)
-        .asSequence()
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .toList()

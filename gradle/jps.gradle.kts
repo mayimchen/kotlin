@@ -1,7 +1,10 @@
 @file:Suppress("UnstableApiUsage")
 
 import org.gradle.jvm.tasks.Jar
-import org.jetbrains.gradle.ext.*
+import org.jetbrains.gradle.ext.ActionDelegationConfig
+import org.jetbrains.gradle.ext.JUnit
+import org.jetbrains.gradle.ext.RecursiveArtifact
+import org.jetbrains.gradle.ext.TopLevelArtifact
 import org.jetbrains.kotlin.ideaExt.*
 
 
@@ -22,18 +25,38 @@ fun JUnit.configureForKotlin(xmx: String = "1600m") {
         "-XX:+UseCodeCacheFlushing",
         "-XX:ReservedCodeCacheSize=128m",
         "-Djna.nosys=true",
+        if (Platform[201].orHigher()) "-Didea.platform.prefix=Idea" else null,
         "-Didea.is.unit.test=true",
         "-Didea.home.path=$ideaSdkPath",
         "-Djps.kotlin.home=${ideaPluginDir.absolutePath}",
         "-Dkotlin.ni=" + if (rootProject.hasProperty("newInferenceTests")) "true" else "false",
         "-Duse.jps=true",
         "-Djava.awt.headless=true"
-    ).joinToString(" ")
+    ).filterNotNull().joinToString(" ")
+
     envs = mapOf(
         "NO_FS_ROOTS_ACCESS_CHECK" to "true",
         "PROJECT_CLASSES_DIRS" to "out/test/org.jetbrains.kotlin.compiler.test"
     )
     workingDirectory = rootDir.toString()
+}
+
+// Needed because of idea.ext plugin can't pass \n symbol
+fun setupGenerateAllTestsRunConfiguration() {
+    rootDir.resolve(".idea/runConfigurations/JPS__Generate_All_Tests.xml").writeText(
+        """
+        |<component name="ProjectRunConfigurationManager">
+        | <configuration default="false" name="[JPS] Generate All Tests" type="Application" factoryName="Application">
+        |    <option name="MAIN_CLASS_NAME" value="org.jetbrains.kotlin.pill.generateAllTests.Main" />
+        |    <module name="kotlin.pill.generate-all-tests.test" />
+        |    <option name="VM_PARAMETERS" value="&quot;-Dline.separator=&#xA;&quot;" />
+        |    <shortenClasspath name="CLASSPATH_FILE" />
+        |    <method v="2">
+        |      <option name="Make" enabled="true" />
+        |    </method>
+        |  </configuration>
+        |</component>
+    """.trimMargin())
 }
 
 // Needed because of idea.ext plugin doesn't allow to set TEST_SEARCH_SCOPE = moduleWithDependencies
@@ -102,6 +125,7 @@ if (kotlinBuildProperties.isInJpsBuildIdeaSync) {
     rootProject.afterEvaluate {
 
         setupFirRunConfiguration()
+        setupGenerateAllTestsRunConfiguration()
 
         rootProject.allprojects {
             idea {
@@ -174,6 +198,7 @@ if (kotlinBuildProperties.isInJpsBuildIdeaSync) {
                                     "-Didea.debug.mode=true",
                                     "-Didea.system.path=${sandboxDir.absolutePath}",
                                     "-Didea.config.path=${sandboxDir.absolutePath}/config",
+                                    "-Didea.tooling.debug=true",
                                     "-Dapple.laf.useScreenMenuBar=true",
                                     "-Dapple.awt.graphics.UseQuartz=true",
                                     "-Dsun.io.useCanonCaches=false",
@@ -189,12 +214,6 @@ if (kotlinBuildProperties.isInJpsBuildIdeaSync) {
 
                         if (intellijUltimateEnabled) {
                             idea("[JPS] IDEA Ultimate", ideaUltimateSandboxDir, ideaPluginDir)
-                        }
-
-                        application("[JPS] Generate All Tests") {
-                            moduleName = "kotlin.pill.generate-all-tests.test"
-                            workingDirectory = rootDir.toString()
-                            mainClass = "org.jetbrains.kotlin.pill.generateAllTests.Main"
                         }
 
                         defaults<JUnit> {

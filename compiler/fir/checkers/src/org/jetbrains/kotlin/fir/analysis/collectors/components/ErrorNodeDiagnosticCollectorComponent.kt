@@ -5,20 +5,15 @@
 
 package org.jetbrains.kotlin.fir.analysis.collectors.components
 
-import com.intellij.psi.PsiElement
-import org.jetbrains.kotlin.diagnostics.DiagnosticFactory0
-import org.jetbrains.kotlin.diagnostics.Errors
 import org.jetbrains.kotlin.fir.FirSourceElement
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.analysis.collectors.AbstractDiagnosticCollector
 import org.jetbrains.kotlin.fir.analysis.diagnostics.DiagnosticReporter
+import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnosticFactory0
 import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
-import org.jetbrains.kotlin.fir.analysis.diagnostics.onSource
 import org.jetbrains.kotlin.fir.declarations.FirErrorFunction
-import org.jetbrains.kotlin.fir.diagnostics.DiagnosticKind
-import org.jetbrains.kotlin.fir.diagnostics.FirDiagnostic
-import org.jetbrains.kotlin.fir.diagnostics.FirSimpleDiagnostic
-import org.jetbrains.kotlin.fir.diagnostics.FirStubDiagnostic
+import org.jetbrains.kotlin.fir.diagnostics.*
+import org.jetbrains.kotlin.fir.diagnostics.DiagnosticKind.*
 import org.jetbrains.kotlin.fir.expressions.FirErrorExpression
 import org.jetbrains.kotlin.fir.expressions.FirErrorLoop
 import org.jetbrains.kotlin.fir.references.FirErrorNamedReference
@@ -51,40 +46,44 @@ class ErrorNodeDiagnosticCollectorComponent(collector: AbstractDiagnosticCollect
         runCheck { reportFirDiagnostic(errorFunction.diagnostic, source, it) }
     }
 
-    private fun reportFirDiagnostic(diagnostic: FirDiagnostic, source: FirSourceElement, reporter: DiagnosticReporter) {
+    private fun reportFirDiagnostic(diagnostic: ConeDiagnostic, source: FirSourceElement, reporter: DiagnosticReporter) {
         val coneDiagnostic = when (diagnostic) {
-            is FirUnresolvedReferenceError -> FirErrors.UNRESOLVED_REFERENCE.onSource(source, diagnostic.name?.asString())
-            is FirUnresolvedSymbolError -> FirErrors.UNRESOLVED_REFERENCE.onSource(source, diagnostic.classId.asString())
-            is FirUnresolvedNameError -> FirErrors.UNRESOLVED_REFERENCE.onSource(source, diagnostic.name.asString())
-            is FirInapplicableCandidateError -> FirErrors.INAPPLICABLE_CANDIDATE.onSource(source, diagnostic.candidates.map { it.symbol })
-            is FirAmbiguityError -> FirErrors.AMBIGUITY.onSource(source, diagnostic.candidates)
-            is FirOperatorAmbiguityError -> FirErrors.ASSIGN_OPERATOR_AMBIGUITY.onSource(source, diagnostic.candidates)
-            is FirVariableExpectedError -> Errors.VARIABLE_EXPECTED.onSource(source)
-            is FirTypeMismatchError -> FirErrors.TYPE_MISMATCH.onSource(source, diagnostic.expectedType, diagnostic.actualType)
-            is FirSimpleDiagnostic -> diagnostic.getFactory().onSource(source)
-            is FirStubDiagnostic -> null
+            is ConeUnresolvedReferenceError -> FirErrors.UNRESOLVED_REFERENCE.on(source, diagnostic.name?.asString())
+            is ConeUnresolvedSymbolError -> FirErrors.UNRESOLVED_REFERENCE.on(source, diagnostic.classId.asString())
+            is ConeUnresolvedNameError -> FirErrors.UNRESOLVED_REFERENCE.on(source, diagnostic.name.asString())
+            is ConeInapplicableCandidateError -> FirErrors.INAPPLICABLE_CANDIDATE.on(source, diagnostic.candidates.map { it.symbol })
+            is ConeAmbiguityError -> FirErrors.AMBIGUITY.on(source, diagnostic.candidates)
+            is ConeOperatorAmbiguityError -> FirErrors.ASSIGN_OPERATOR_AMBIGUITY.on(source, diagnostic.candidates)
+            is ConeVariableExpectedError -> FirErrors.VARIABLE_EXPECTED.on(source)
+            is ConeTypeMismatchError -> FirErrors.TYPE_MISMATCH.on(source, diagnostic.expectedType, diagnostic.actualType)
+            is ConeSimpleDiagnostic -> diagnostic.getFactory().on(source)
+            is ConeStubDiagnostic -> null
             else -> throw IllegalArgumentException("Unsupported diagnostic type: ${diagnostic.javaClass}")
         }
         reporter.report(coneDiagnostic)
     }
 
-    private fun FirSimpleDiagnostic.getFactory(): DiagnosticFactory0<PsiElement> {
+    private fun ConeSimpleDiagnostic.getFactory(): FirDiagnosticFactory0<FirSourceElement, *> {
         @Suppress("UNCHECKED_CAST")
         return when (kind) {
-            DiagnosticKind.Syntax -> FirErrors.SYNTAX_ERROR
-            DiagnosticKind.ReturnNotAllowed -> Errors.RETURN_NOT_ALLOWED
-            DiagnosticKind.UnresolvedLabel -> FirErrors.UNRESOLVED_LABEL
-            DiagnosticKind.IllegalConstExpression -> FirErrors.ILLEGAL_CONST_EXPRESSION
-            DiagnosticKind.ConstructorInObject -> Errors.CONSTRUCTOR_IN_OBJECT
-            DiagnosticKind.DeserializationError -> FirErrors.DESERIALIZATION_ERROR
-            DiagnosticKind.InferenceError -> FirErrors.INFERENCE_ERROR
-            DiagnosticKind.NoSupertype -> FirErrors.NO_SUPERTYPE
-            DiagnosticKind.TypeParameterAsSupertype -> FirErrors.TYPE_PARAMETER_AS_SUPERTYPE
-            DiagnosticKind.EnumAsSupertype -> FirErrors.ENUM_AS_SUPERTYPE
-            DiagnosticKind.RecursionInSupertypes -> FirErrors.RECURSION_IN_SUPERTYPES
-            DiagnosticKind.RecursionInImplicitTypes -> FirErrors.RECURSION_IN_IMPLICIT_TYPES
-            DiagnosticKind.Java -> FirErrors.ERROR_FROM_JAVA_RESOLUTION
-            DiagnosticKind.Other -> FirErrors.OTHER_ERROR
-        } as DiagnosticFactory0<PsiElement>
+            Syntax -> FirErrors.SYNTAX_ERROR
+            ReturnNotAllowed -> FirErrors.RETURN_NOT_ALLOWED
+            UnresolvedLabel -> FirErrors.UNRESOLVED_LABEL
+            IllegalConstExpression -> FirErrors.ILLEGAL_CONST_EXPRESSION
+            DeserializationError -> FirErrors.DESERIALIZATION_ERROR
+            InferenceError -> FirErrors.INFERENCE_ERROR
+            TypeParameterAsSupertype -> FirErrors.TYPE_PARAMETER_AS_SUPERTYPE
+            EnumAsSupertype -> FirErrors.ENUM_AS_SUPERTYPE
+            RecursionInSupertypes -> FirErrors.RECURSION_IN_SUPERTYPES
+            RecursionInImplicitTypes -> FirErrors.RECURSION_IN_IMPLICIT_TYPES
+            SuperNotAllowed -> FirErrors.SUPER_IS_NOT_AN_EXPRESSION
+            Java -> FirErrors.ERROR_FROM_JAVA_RESOLUTION
+            ExpressionRequired -> FirErrors.EXPRESSION_REQUIRED
+            JumpOutsideLoop -> FirErrors.BREAK_OR_CONTINUE_OUTSIDE_A_LOOP
+            NotLoopLabel -> FirErrors.NOT_A_LOOP_LABEL
+            VariableExpected -> FirErrors.VARIABLE_EXPECTED
+            Other -> FirErrors.OTHER_ERROR
+            else -> throw IllegalArgumentException("Unsupported diagnostic kind: $kind at $javaClass")
+        }
     }
 }

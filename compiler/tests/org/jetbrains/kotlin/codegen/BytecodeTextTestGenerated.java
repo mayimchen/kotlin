@@ -124,6 +124,11 @@ public class BytecodeTextTestGenerated extends AbstractBytecodeTextTest {
         runTest("compiler/testData/codegen/bytecodeText/flagsInMultiFileInherit.kt");
     }
 
+    @TestMetadata("iincGeneration.kt")
+    public void testIincGeneration() throws Exception {
+        runTest("compiler/testData/codegen/bytecodeText/iincGeneration.kt");
+    }
+
     @TestMetadata("inheritedPropertyAnnotations.kt")
     public void testInheritedPropertyAnnotations() throws Exception {
         runTest("compiler/testData/codegen/bytecodeText/inheritedPropertyAnnotations.kt");
@@ -1386,6 +1391,16 @@ public class BytecodeTextTestGenerated extends AbstractBytecodeTextTest {
             runTest("compiler/testData/codegen/bytecodeText/coroutines/doNotReassignContinuation.kt");
         }
 
+        @TestMetadata("effectivelyInlineOnly.kt")
+        public void testEffectivelyInlineOnly() throws Exception {
+            runTest("compiler/testData/codegen/bytecodeText/coroutines/effectivelyInlineOnly.kt");
+        }
+
+        @TestMetadata("nonLocalReturn.kt")
+        public void testNonLocalReturn() throws Exception {
+            runTest("compiler/testData/codegen/bytecodeText/coroutines/nonLocalReturn.kt");
+        }
+
         @TestMetadata("returnUnitInLambda.kt")
         public void testReturnUnitInLambda_1_2() throws Exception {
             runTestWithPackageReplacement("compiler/testData/codegen/bytecodeText/coroutines/returnUnitInLambda.kt", "kotlin.coroutines.experimental");
@@ -1464,6 +1479,34 @@ public class BytecodeTextTestGenerated extends AbstractBytecodeTextTest {
             @TestMetadata("inlineSeparateFiles.kt")
             public void testInlineSeparateFiles() throws Exception {
                 runTest("compiler/testData/codegen/bytecodeText/coroutines/destructuringInLambda/inlineSeparateFiles.kt");
+            }
+        }
+
+        @TestMetadata("compiler/testData/codegen/bytecodeText/coroutines/inlineClasses")
+        @TestDataPath("$PROJECT_ROOT")
+        @RunWith(JUnit3RunnerWithInners.class)
+        public static class InlineClasses extends AbstractBytecodeTextTest {
+            private void runTest(String testDataFilePath) throws Exception {
+                KotlinTestUtils.runTest(this::doTest, TargetBackend.JVM, testDataFilePath);
+            }
+
+            public void testAllFilesPresentInInlineClasses() throws Exception {
+                KotlinTestUtils.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/bytecodeText/coroutines/inlineClasses"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM, true);
+            }
+
+            @TestMetadata("inlineClassBoxingInSuspendFunReturn_Primitive.kt")
+            public void testInlineClassBoxingInSuspendFunReturn_Primitive() throws Exception {
+                runTest("compiler/testData/codegen/bytecodeText/coroutines/inlineClasses/inlineClassBoxingInSuspendFunReturn_Primitive.kt");
+            }
+
+            @TestMetadata("noInlineClassBoxingInSuspendFunReturn_Any.kt")
+            public void testNoInlineClassBoxingInSuspendFunReturn_Any() throws Exception {
+                runTest("compiler/testData/codegen/bytecodeText/coroutines/inlineClasses/noInlineClassBoxingInSuspendFunReturn_Any.kt");
+            }
+
+            @TestMetadata("noInlineClassBoxingInSuspendFunReturn_InlineAny.kt")
+            public void testNoInlineClassBoxingInSuspendFunReturn_InlineAny() throws Exception {
+                runTest("compiler/testData/codegen/bytecodeText/coroutines/inlineClasses/noInlineClassBoxingInSuspendFunReturn_InlineAny.kt");
             }
         }
 
@@ -3150,6 +3193,44 @@ public class BytecodeTextTestGenerated extends AbstractBytecodeTextTest {
                 KotlinTestUtils.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/bytecodeText/jvm8/jvmDefault"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM, true);
             }
 
+            @TestMetadata("compiler/testData/codegen/bytecodeText/jvm8/jvmDefault/allCompatibility")
+            @TestDataPath("$PROJECT_ROOT")
+            @RunWith(JUnit3RunnerWithInners.class)
+            public static class AllCompatibility extends AbstractBytecodeTextTest {
+                private void runTest(String testDataFilePath) throws Exception {
+                    KotlinTestUtils.runTest(this::doTest, TargetBackend.JVM, testDataFilePath);
+                }
+
+                public void testAllFilesPresentInAllCompatibility() throws Exception {
+                    KotlinTestUtils.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/bytecodeText/jvm8/jvmDefault/allCompatibility"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM, true);
+                }
+
+                @TestMetadata("defaultArgs.kt")
+                public void testDefaultArgs() throws Exception {
+                    runTest("compiler/testData/codegen/bytecodeText/jvm8/jvmDefault/allCompatibility/defaultArgs.kt");
+                }
+
+                @TestMetadata("simpleDiamond.kt")
+                public void testSimpleDiamond() throws Exception {
+                    runTest("compiler/testData/codegen/bytecodeText/jvm8/jvmDefault/allCompatibility/simpleDiamond.kt");
+                }
+
+                @TestMetadata("simpleFunction.kt")
+                public void testSimpleFunction() throws Exception {
+                    runTest("compiler/testData/codegen/bytecodeText/jvm8/jvmDefault/allCompatibility/simpleFunction.kt");
+                }
+
+                @TestMetadata("simpleFunctionWithAbstractOverride.kt")
+                public void testSimpleFunctionWithAbstractOverride() throws Exception {
+                    runTest("compiler/testData/codegen/bytecodeText/jvm8/jvmDefault/allCompatibility/simpleFunctionWithAbstractOverride.kt");
+                }
+
+                @TestMetadata("simpleProperty.kt")
+                public void testSimpleProperty() throws Exception {
+                    runTest("compiler/testData/codegen/bytecodeText/jvm8/jvmDefault/allCompatibility/simpleProperty.kt");
+                }
+            }
+
             @TestMetadata("compiler/testData/codegen/bytecodeText/jvm8/jvmDefault/compatibility")
             @TestDataPath("$PROJECT_ROOT")
             @RunWith(JUnit3RunnerWithInners.class)
@@ -4245,9 +4326,29 @@ public class BytecodeTextTestGenerated extends AbstractBytecodeTextTest {
             runTest("compiler/testData/codegen/bytecodeText/stringOperations/singleConcat.kt");
         }
 
+        @TestMetadata("stringBuilderToString.kt")
+        public void testStringBuilderToString() throws Exception {
+            runTest("compiler/testData/codegen/bytecodeText/stringOperations/stringBuilderToString.kt");
+        }
+
         @TestMetadata("stringPlus.kt")
         public void testStringPlus() throws Exception {
             runTest("compiler/testData/codegen/bytecodeText/stringOperations/stringPlus.kt");
+        }
+
+        @TestMetadata("useAppendCharForOneCharStringInTemplate.kt")
+        public void testUseAppendCharForOneCharStringInTemplate() throws Exception {
+            runTest("compiler/testData/codegen/bytecodeText/stringOperations/useAppendCharForOneCharStringInTemplate.kt");
+        }
+
+        @TestMetadata("useAppendCharForOneCharStringInTemplate_2.kt")
+        public void testUseAppendCharForOneCharStringInTemplate_2() throws Exception {
+            runTest("compiler/testData/codegen/bytecodeText/stringOperations/useAppendCharForOneCharStringInTemplate_2.kt");
+        }
+
+        @TestMetadata("useAppendCharForOneCharStringUsingPlus.kt")
+        public void testUseAppendCharForOneCharStringUsingPlus() throws Exception {
+            runTest("compiler/testData/codegen/bytecodeText/stringOperations/useAppendCharForOneCharStringUsingPlus.kt");
         }
     }
 

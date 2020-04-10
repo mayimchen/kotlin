@@ -28,12 +28,12 @@ import com.intellij.util.text.VersionComparatorUtil
 import org.gradle.tooling.model.UnsupportedMethodException
 import org.gradle.tooling.model.idea.IdeaContentRoot
 import org.gradle.tooling.model.idea.IdeaModule
+import org.jetbrains.annotations.NonNls
 import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.arguments.ManualLanguageFeatureSetting
 import org.jetbrains.kotlin.cli.common.arguments.parseCommandLineArguments
-import org.jetbrains.kotlin.config.ExternalSystemTestTask
-import org.jetbrains.kotlin.config.LanguageFeature
+import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.gradle.*
 import org.jetbrains.kotlin.idea.configuration.GradlePropertiesFileFacade.Companion.KOTLIN_NOT_IMPORTED_COMMON_SOURCE_SETS_SETTING
 import org.jetbrains.kotlin.idea.configuration.klib.KotlinNativeLibrariesDependencySubstitutor
@@ -171,7 +171,7 @@ open class KotlinMPPGradleProjectResolver : AbstractProjectResolverExtensionComp
                     externalProject?.sourceSets?.values?.forEach { sourceSet ->
                         sourceSet.dependencies.forEach { dependency ->
                             dependency.getDependencyArtifacts().map { toCanonicalPath(it.absolutePath) }
-                                .filter { mppArtifacts.keys.contains(it) }.forEach {filePath ->
+                                .filter { mppArtifacts.keys.contains(it) }.forEach { filePath ->
                                     (artifactToDependency[filePath] ?: ArrayList<ExternalDependency>().also { newCollection ->
                                         artifactToDependency[filePath] = newCollection
                                     }).add(dependency)
@@ -282,7 +282,7 @@ open class KotlinMPPGradleProjectResolver : AbstractProjectResolverExtensionComp
 
             val sourceSetMap = projectDataNode.getUserData(GradleProjectResolver.RESOLVED_SOURCE_SETS)!!
 
-            val sourceSetToTestTasks = calculateTestTasks(mppModel, gradleModule, resolverCtx)
+            val sourceSetToRunTasks = calculateRunTasks(mppModel, gradleModule, resolverCtx)
 
             val sourceSetToCompilationData = LinkedHashMap<KotlinSourceSet, MutableSet<GradleSourceSetData>>()
             for (target in mppModel.targets) {
@@ -292,7 +292,7 @@ open class KotlinMPPGradleProjectResolver : AbstractProjectResolverExtensionComp
                     it.archiveFile = target.jar?.archiveFile
                     it.konanArtifacts = target.konanArtifacts
                 }
-                val targetDataNode = mainModuleNode.createChild<KotlinTargetData>(KotlinTargetData.KEY, targetData)
+                mainModuleNode.createChild(KotlinTargetData.KEY, targetData)
 
                 val compilationIds = LinkedHashSet<String>()
                 for (compilation in target.compilations) {
@@ -335,8 +335,8 @@ open class KotlinMPPGradleProjectResolver : AbstractProjectResolverExtensionComp
                         gradleModule,
                         resolverCtx
                     ) ?: continue
-                    kotlinSourceSet.externalSystemTestTasks =
-                        compilation.sourceSets.firstNotNullResult { sourceSetToTestTasks[it] } ?: emptyList()
+                    kotlinSourceSet.externalSystemRunTasks =
+                        compilation.sourceSets.firstNotNullResult { sourceSetToRunTasks[it] } ?: emptyList()
 
                     if (compilation.platform == KotlinPlatform.JVM || compilation.platform == KotlinPlatform.ANDROID) {
                         compilationData.targetCompatibility = (kotlinSourceSet.compilerArguments as? K2JVMCompilerArguments)?.jvmTarget
@@ -395,7 +395,7 @@ open class KotlinMPPGradleProjectResolver : AbstractProjectResolverExtensionComp
                 }
 
                 val kotlinSourceSet = createSourceSetInfo(sourceSet, gradleModule, resolverCtx) ?: continue
-                kotlinSourceSet.externalSystemTestTasks = sourceSetToTestTasks[sourceSet] ?: emptyList()
+                kotlinSourceSet.externalSystemRunTasks = sourceSetToRunTasks[sourceSet] ?: emptyList()
 
                 val sourceSetDataNode =
                     (existingSourceSetDataNode ?: mainModuleNode.createChild(GradleSourceSetData.KEY, sourceSetData)).also {
@@ -418,19 +418,38 @@ open class KotlinMPPGradleProjectResolver : AbstractProjectResolverExtensionComp
             //TODO improve passing version of used multiplatform
         }
 
-        private fun calculateTestTasks(
+        private fun calculateRunTasks(
             mppModel: KotlinMPPGradleModel,
             gradleModule: IdeaModule,
             resolverCtx: ProjectResolverContext
-        ): Map<KotlinSourceSet, Collection<ExternalSystemTestTask>> {
-            val sourceSetToTestTasks: MutableMap<KotlinSourceSet, MutableCollection<ExternalSystemTestTask>> = HashMap()
+        ): Map<KotlinSourceSet, Collection<ExternalSystemRunTask>> {
+            val sourceSetToRunTasks: MutableMap<KotlinSourceSet, MutableCollection<ExternalSystemRunTask>> = HashMap()
             val dependsOnReverseGraph: MutableMap<String, MutableSet<KotlinSourceSet>> = HashMap()
             mppModel.targets.forEach { target ->
                 target.compilations.forEach { compilation ->
-                    val testTasks = target.testTasks.filter { testTask -> testTask.compilationName == compilation.name }
-                        .map { ExternalSystemTestTask(it.taskName, getKotlinModuleId(gradleModule, compilation, resolverCtx), target.name) }
+                    val testRunTasks = target.testRunTasks
+                        .filter { task -> task.compilationName == compilation.name }
+                        .map {
+                            ExternalSystemTestRunTask(
+                                it.taskName,
+                                getKotlinModuleId(gradleModule, compilation, resolverCtx),
+                                target.name
+                            )
+                        }
+                    val nativeMainRunTasks = target.nativeMainRunTasks
+                        .filter { task -> task.compilationName == compilation.name }
+                        .map {
+                            ExternalSystemNativeMainRunTask(
+                                it.taskName,
+                                getKotlinModuleId(gradleModule, compilation, resolverCtx),
+                                target.name,
+                                it.entryPoint,
+                                it.debuggable
+                            )
+                        }
+                    val allRunTasks = testRunTasks + nativeMainRunTasks
                     compilation.sourceSets.forEach { sourceSet ->
-                        sourceSetToTestTasks.getOrPut(sourceSet) { LinkedHashSet() } += testTasks
+                        sourceSetToRunTasks.getOrPut(sourceSet) { LinkedHashSet() } += allRunTasks
                         sourceSet.dependsOnSourceSets.forEach { dependentModule ->
                             dependsOnReverseGraph.getOrPut(dependentModule) { LinkedHashSet() } += sourceSet
                         }
@@ -439,10 +458,10 @@ open class KotlinMPPGradleProjectResolver : AbstractProjectResolverExtensionComp
             }
             mppModel.sourceSets.forEach { (sourceSetName, sourceSet) ->
                 dependsOnReverseGraph[sourceSetName]?.forEach { dependingSourceSet ->
-                    sourceSetToTestTasks.getOrPut(sourceSet) { LinkedHashSet() } += sourceSetToTestTasks[dependingSourceSet] ?: emptyList()
+                    sourceSetToRunTasks.getOrPut(sourceSet) { LinkedHashSet() } += sourceSetToRunTasks[dependingSourceSet] ?: emptyList()
                 }
             }
-            return sourceSetToTestTasks
+            return sourceSetToRunTasks
         }
 
         fun populateContentRoots(
@@ -492,7 +511,7 @@ open class KotlinMPPGradleProjectResolver : AbstractProjectResolverExtensionComp
             val substitutedDependencies: List<ExternalDependency>
         ) {
             val konanTarget: String?
-                get() = compilation.nativeExtensions.konanTarget
+                get() = compilation.nativeExtensions?.konanTarget
 
             val dependencyNames: Map<String, ExternalDependency> by lazy {
                 substitutedDependencies.associateBy { it.name.removeSuffixIfPresent(" [$konanTarget]") }
@@ -678,7 +697,7 @@ open class KotlinMPPGradleProjectResolver : AbstractProjectResolverExtensionComp
                 it.startsWith("ios") || it.startsWith("watchos") || it.startsWith("tvos")
             } ?: false
 
-        private fun Iterable<CompilationWithDependencies>.selectFirstAvailableTarget(vararg targetsByPriority: String): CompilationWithDependencies {
+        private fun Iterable<CompilationWithDependencies>.selectFirstAvailableTarget(@NonNls vararg targetsByPriority: String): CompilationWithDependencies {
             for (target in targetsByPriority) {
                 val result = firstOrNull { it.konanTarget == target }
                 if (result != null) {

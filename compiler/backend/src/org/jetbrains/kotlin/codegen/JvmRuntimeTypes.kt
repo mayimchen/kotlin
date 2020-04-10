@@ -9,7 +9,6 @@ import org.jetbrains.kotlin.builtins.createFunctionType
 import org.jetbrains.kotlin.codegen.coroutines.coroutinesJvmInternalPackageFqName
 import org.jetbrains.kotlin.codegen.coroutines.getOrCreateJvmSuspendFunctionView
 import org.jetbrains.kotlin.codegen.coroutines.isSuspendLambdaOrLocalFunction
-import org.jetbrains.kotlin.config.ApiVersion
 import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.config.isReleaseCoroutines
@@ -29,14 +28,11 @@ import org.jetbrains.kotlin.types.KotlinType
 class JvmRuntimeTypes(
     module: ModuleDescriptor,
     private val languageVersionSettings: LanguageVersionSettings,
-    forceNoOptimizedCallableReferences: Boolean
+    private val generateOptimizedCallableReferenceSuperClasses: Boolean
 ) {
     private val kotlinJvmInternalPackage = MutablePackageFragmentDescriptor(module, FqName("kotlin.jvm.internal"))
     private val kotlinCoroutinesJvmInternalPackage =
         MutablePackageFragmentDescriptor(module, languageVersionSettings.coroutinesJvmInternalPackageFqName())
-
-    val generateOptimizedCallableReferenceSuperClasses =
-        languageVersionSettings.apiVersion >= ApiVersion.KOTLIN_1_4 && !forceNoOptimizedCallableReferences
 
     private fun internal(className: String, packageFragment: PackageFragmentDescriptor = kotlinJvmInternalPackage): Lazy<ClassDescriptor> =
         lazy { createClass(packageFragment, className) }
@@ -48,9 +44,9 @@ class JvmRuntimeTypes(
         lazy { (0..2).map { i -> createClass(kotlinJvmInternalPackage, prefix + i + suffix) } }
 
     private val lambda: ClassDescriptor by internal("Lambda")
-
-    private val functionReference: ClassDescriptor by internal("FunctionReference")
+    val functionReference: ClassDescriptor by internal("FunctionReference")
     val functionReferenceImpl: ClassDescriptor by internal("FunctionReferenceImpl")
+    val adaptedFunctionReference: ClassDescriptor by internal("AdaptedFunctionReference")
 
     private val localVariableReference: ClassDescriptor by internal("LocalVariableReference")
     private val mutableLocalVariableReference: ClassDescriptor by internal("MutableLocalVariableReference")
@@ -139,7 +135,8 @@ class JvmRuntimeTypes(
     fun getSupertypesForFunctionReference(
         referencedFunction: FunctionDescriptor,
         anonymousFunctionDescriptor: AnonymousFunctionDescriptor,
-        isBound: Boolean
+        isBound: Boolean,
+        isAdaptedCallableReference: Boolean
     ): Collection<KotlinType> {
         val receivers = computeExpectedNumberOfReceivers(referencedFunction, isBound)
 
@@ -150,12 +147,16 @@ class JvmRuntimeTypes(
                 ?: referencedFunction.dispatchReceiverParameter?.type,
             anonymousFunctionDescriptor.valueParameters.drop(receivers).map { it.type },
             null,
-            referencedFunction.returnType!!,
+            anonymousFunctionDescriptor.returnType!!,
             referencedFunction.isSuspend
         )
 
         val suspendFunctionType = if (referencedFunction.isSuspend) suspendFunctionInterface?.defaultType else null
-        val superClass = if (generateOptimizedCallableReferenceSuperClasses) functionReferenceImpl else functionReference
+        val superClass = when {
+            isAdaptedCallableReference -> adaptedFunctionReference
+            generateOptimizedCallableReferenceSuperClasses -> functionReferenceImpl
+            else -> functionReference
+        }
         return listOfNotNull(superClass.defaultType, functionType, suspendFunctionType)
     }
 

@@ -42,6 +42,15 @@ constructor(
     override lateinit var testRuns: NamedDomainObjectContainer<KotlinJsReportAggregatingTestRun>
         internal set
 
+    override var moduleName: String? = null
+        set(value) {
+            check(!isBrowserConfigured && !isNodejsConfigured) {
+                "Please set moduleName before initialize browser() or nodejs()"
+            }
+            irTarget?.moduleName = value
+            field = value
+        }
+
     val disambiguationClassifierInPlatform: String?
         get() = disambiguationClassifier?.removeJsCompilerSuffix(KotlinJsCompilerType.LEGACY)
 

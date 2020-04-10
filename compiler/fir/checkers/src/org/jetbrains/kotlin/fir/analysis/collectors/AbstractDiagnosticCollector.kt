@@ -9,9 +9,13 @@ import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.analysis.checkers.context.PersistentCheckerContext
 import org.jetbrains.kotlin.fir.analysis.collectors.components.*
-import org.jetbrains.kotlin.fir.analysis.diagnostics.ConeDiagnostic
 import org.jetbrains.kotlin.fir.analysis.diagnostics.DiagnosticReporter
+import org.jetbrains.kotlin.fir.analysis.diagnostics.FirDiagnostic
 import org.jetbrains.kotlin.fir.declarations.*
+import org.jetbrains.kotlin.fir.expressions.FirBreakExpression
+import org.jetbrains.kotlin.fir.expressions.FirContinueExpression
+import org.jetbrains.kotlin.fir.expressions.FirErrorLoop
+import org.jetbrains.kotlin.fir.expressions.FirLoopJump
 import org.jetbrains.kotlin.fir.resolve.ScopeSession
 import org.jetbrains.kotlin.fir.resolve.SessionHolder
 import org.jetbrains.kotlin.fir.resolve.collectImplicitReceivers
@@ -27,7 +31,7 @@ abstract class AbstractDiagnosticCollector(
     override val session: FirSession,
     override val scopeSession: ScopeSession = ScopeSession()
 ) : SessionHolder {
-    fun collectDiagnostics(firFile: FirFile): Iterable<ConeDiagnostic> {
+    fun collectDiagnostics(firFile: FirFile): Iterable<FirDiagnostic<*>> {
         if (!componentsInitialized) {
             throw IllegalStateException("Components are not initialized")
         }
@@ -37,14 +41,15 @@ abstract class AbstractDiagnosticCollector(
     }
 
     protected abstract fun initializeCollector()
-    protected abstract fun getCollectedDiagnostics(): Iterable<ConeDiagnostic>
+    protected abstract fun getCollectedDiagnostics(): Iterable<FirDiagnostic<*>>
     abstract fun runCheck(block: (DiagnosticReporter) -> Unit)
 
     private val components: MutableList<AbstractDiagnosticCollectorComponent> = mutableListOf()
     private var componentsInitialized = false
     private val visitor = Visitor()
 
-    private var context = PersistentCheckerContext()
+    @Suppress("LeakingThis")
+    private var context = PersistentCheckerContext(this)
 
     fun initializeComponents(vararg components: AbstractDiagnosticCollectorComponent) {
         if (componentsInitialized) {
@@ -66,11 +71,38 @@ abstract class AbstractDiagnosticCollector(
             element.acceptChildren(this)
         }
 
-        override fun visitRegularClass(regularClass: FirRegularClass) {
+        private fun visitJump(loopJump: FirLoopJump) {
+            loopJump.runComponents()
+            loopJump.acceptChildren(this)
+            loopJump.target.labeledElement.takeIf { it is FirErrorLoop }?.accept(this)
+        }
+
+        override fun visitBreakExpression(breakExpression: FirBreakExpression) {
+            visitJump(breakExpression)
+        }
+
+        override fun visitContinueExpression(continueExpression: FirContinueExpression) {
+            visitJump(continueExpression)
+        }
+
+        private fun visitClassAndChildren(klass: FirClass<*>, type: ConeKotlinType) {
             val typeRef = buildResolvedTypeRef {
-                type = regularClass.defaultType()
+                this.type = type
             }
-            visitWithDeclarationAndReceiver(regularClass, regularClass.name, typeRef)
+            visitWithDeclarationAndReceiver(klass, (klass as? FirRegularClass)?.name, typeRef)
+
+        }
+
+        override fun visitRegularClass(regularClass: FirRegularClass) {
+            visitClassAndChildren(regularClass, regularClass.defaultType())
+        }
+
+        override fun visitSealedClass(sealedClass: FirSealedClass) {
+            visitClassAndChildren(sealedClass, sealedClass.defaultType())
+        }
+
+        override fun visitAnonymousObject(anonymousObject: FirAnonymousObject) {
+            visitClassAndChildren(anonymousObject, anonymousObject.defaultType())
         }
 
         override fun visitSimpleFunction(simpleFunction: FirSimpleFunction) {

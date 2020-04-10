@@ -19,6 +19,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.PathUtil
 import com.intellij.util.SmartList
+import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import org.jetbrains.jps.model.module.JpsModuleSourceRootType
 import org.jetbrains.kotlin.analyzer.CombinedModuleInfo
@@ -26,6 +27,7 @@ import org.jetbrains.kotlin.analyzer.LibraryModuleInfo
 import org.jetbrains.kotlin.analyzer.ModuleInfo
 import org.jetbrains.kotlin.analyzer.TrackableModuleInfo
 import org.jetbrains.kotlin.caches.project.cacheByClassInvalidatingOnRootModifications
+import org.jetbrains.kotlin.caches.project.cacheInvalidatingOnRootModifications
 import org.jetbrains.kotlin.caches.resolve.resolution
 import org.jetbrains.kotlin.config.SourceKotlinRootType
 import org.jetbrains.kotlin.config.TestSourceKotlinRootType
@@ -37,7 +39,10 @@ import org.jetbrains.kotlin.idea.configuration.BuildSystemType
 import org.jetbrains.kotlin.idea.configuration.getBuildSystemType
 import org.jetbrains.kotlin.idea.core.isInTestSourceContentKotlinAware
 import org.jetbrains.kotlin.idea.framework.getLibraryPlatform
-import org.jetbrains.kotlin.idea.project.*
+import org.jetbrains.kotlin.idea.project.TargetPlatformDetector
+import org.jetbrains.kotlin.idea.project.findAnalyzerServices
+import org.jetbrains.kotlin.idea.project.getStableName
+import org.jetbrains.kotlin.idea.project.isHMPPEnabled
 import org.jetbrains.kotlin.idea.stubindex.KotlinSourceFilterScope
 import org.jetbrains.kotlin.idea.util.isInSourceContentWithoutInjected
 import org.jetbrains.kotlin.idea.util.rootManager
@@ -64,6 +69,8 @@ interface IdeaModuleInfo : org.jetbrains.kotlin.idea.caches.resolve.IdeaModuleIn
     fun contentScope(): GlobalSearchScope
 
     val moduleOrigin: ModuleOrigin
+
+    val project: Project?
 
     override val capabilities: Map<ModuleDescriptor.Capability<*>, Any?>
         get() = super.capabilities + mapOf(OriginCapability to moduleOrigin)
@@ -102,10 +109,16 @@ private fun orderEntryToModuleInfo(project: Project, orderEntry: OrderEntry, for
     }
 }
 
-fun createLibraryInfo(project: Project, library: Library): List<LibraryInfo> {
-    return getLibraryPlatform(project, library).idePlatformKind.resolution.createLibraryInfo(project, library)
-}
+val Project.libraryInfoCache: MutableMap<Library, List<LibraryInfo>>
+    get() = cacheInvalidatingOnRootModifications { ContainerUtil.createConcurrentWeakMap() }
 
+fun createLibraryInfo(project: Project, library: Library): List<LibraryInfo> {
+    val cache = project.libraryInfoCache
+
+    return cache.getOrPut(library) {
+        getLibraryPlatform(project, library).idePlatformKind.resolution.createLibraryInfo(project, library)
+    }
+}
 
 private fun OrderEntry.acceptAsDependency(forProduction: Boolean): Boolean {
     return this !is ExportableOrderEntry
@@ -156,6 +169,9 @@ interface ModuleSourceInfo : IdeaModuleInfo, TrackableModuleInfo {
     override val moduleOrigin: ModuleOrigin
         get() = ModuleOrigin.MODULE
 
+    override val project: Project
+        get() = module.project
+
     override val platform: TargetPlatform
         get() = TargetPlatformDetector.getPlatform(module)
 
@@ -190,7 +206,7 @@ data class ModuleProductionSourceInfo internal constructor(
     override val module: Module
 ) : ModuleSourceInfoWithExpectedBy(forProduction = true) {
 
-    override val name = Name.special(KotlinIdeaAnalysisBundle.message("production.sources.for.module.0", module.name))
+    override val name = Name.special("<production sources for module ${module.name}>")
 
     override val stableName: Name = module.getStableName()
 
@@ -204,11 +220,11 @@ data class ModuleProductionSourceInfo internal constructor(
 data class ModuleTestSourceInfo internal constructor(override val module: Module) :
     ModuleSourceInfoWithExpectedBy(forProduction = false), org.jetbrains.kotlin.idea.caches.resolve.ModuleTestSourceInfo {
 
-    override val name = Name.special(KotlinIdeaAnalysisBundle.message("test.sources.for.module.0", module.name))
+    override val name = Name.special("<test sources for module ${module.name}>")
+
+    override val displayedName get() = KotlinIdeaAnalysisBundle.message("module.name.0.test", module.name)
 
     override val stableName: Name = module.getStableName()
-
-    override val displayedName get() = module.name + " (test)"
 
     override fun contentScope(): GlobalSearchScope = enlargedSearchScope(ModuleTestSourceScope(module), module, isTestScope = true)
 
@@ -284,11 +300,14 @@ private class ModuleTestSourceScope(module: Module) : ModuleSourceScope(module) 
     override fun toString() = "ModuleTestSourceScope($module)"
 }
 
-open class LibraryInfo(val project: Project, val library: Library) : IdeaModuleInfo, LibraryModuleInfo, BinaryModuleInfo {
+open class LibraryInfo(override val project: Project, val library: Library) : IdeaModuleInfo, LibraryModuleInfo, BinaryModuleInfo {
     override val moduleOrigin: ModuleOrigin
         get() = ModuleOrigin.LIBRARY
 
-    override val name: Name = Name.special(KotlinIdeaAnalysisBundle.message("library.0", library.name.toString()))
+    override val name: Name = Name.special("<library ${library.name}>")
+
+    override val displayedName: String
+        get() = KotlinIdeaAnalysisBundle.message("library.0", library.name.toString())
 
     override fun contentScope(): GlobalSearchScope = LibraryWithoutSourceScope(project, library)
 
@@ -329,10 +348,13 @@ open class LibraryInfo(val project: Project, val library: Library) : IdeaModuleI
 
 }
 
-data class LibrarySourceInfo(val project: Project, val library: Library, override val binariesModuleInfo: BinaryModuleInfo) :
+data class LibrarySourceInfo(override val project: Project, val library: Library, override val binariesModuleInfo: BinaryModuleInfo) :
     IdeaModuleInfo, SourceForBinaryModuleInfo {
 
-    override val name: Name = Name.special(KotlinIdeaAnalysisBundle.message("sources.for.library.0", library.name.toString()))
+    override val name: Name = Name.special("<sources for library ${library.name}>")
+
+    override val displayedName: String
+        get() = KotlinIdeaAnalysisBundle.message("sources.for.library.0", library.name.toString())
 
     override fun sourceScope(): GlobalSearchScope = KotlinSourceFilterScope.librarySources(
         LibrarySourceScope(
@@ -355,11 +377,14 @@ data class LibrarySourceInfo(val project: Project, val library: Library, overrid
 }
 
 //TODO: (module refactoring) there should be separate SdkSourceInfo but there are no kotlin source in existing sdks for now :)
-data class SdkInfo(val project: Project, val sdk: Sdk) : IdeaModuleInfo {
+data class SdkInfo(override val project: Project, val sdk: Sdk) : IdeaModuleInfo {
     override val moduleOrigin: ModuleOrigin
         get() = ModuleOrigin.LIBRARY
 
-    override val name: Name = Name.special(KotlinIdeaAnalysisBundle.message("sdk.0", sdk.name))
+    override val name: Name = Name.special("<sdk ${sdk.name}>")
+
+    override val displayedName: String
+        get() = KotlinIdeaAnalysisBundle.message("sdk.0", sdk.name)
 
     override fun contentScope(): GlobalSearchScope = SdkScope(project, sdk)
 
@@ -376,7 +401,13 @@ object NotUnderContentRootModuleInfo : IdeaModuleInfo {
     override val moduleOrigin: ModuleOrigin
         get() = ModuleOrigin.OTHER
 
-    override val name: Name = Name.special(KotlinIdeaAnalysisBundle.message("special.module.for.files.not.under.source.root"))
+    override val name: Name = Name.special("<special module for files not under source root>")
+
+    override val displayedName: String
+        get() = KotlinIdeaAnalysisBundle.message("special.module.for.files.not.under.source.root")
+
+    override val project: Project?
+        get() = null
 
     override fun contentScope() = GlobalSearchScope.EMPTY_SCOPE
 
@@ -481,6 +512,9 @@ data class PlatformModuleInfo(
 
     override val containedModules: List<ModuleSourceInfo> = listOf(platformModule) + commonModules
 
+    override val project: Project
+        get() = platformModule.module.project
+
     override val platform: TargetPlatform
         get() = platformModule.platform
 
@@ -497,8 +531,14 @@ data class PlatformModuleInfo(
 
     override fun modulesWhoseInternalsAreVisible() = containedModules.flatMap { it.modulesWhoseInternalsAreVisible() }
 
-    override val name: Name
-        get() = Name.special("<Platform module ${platformModule.displayedName} including ${commonModules.map { it.displayedName }}>")
+    override val name: Name = Name.special("<Platform module ${platformModule.name} including ${commonModules.map { it.name }}>")
+
+    override val displayedName: String
+        get() = KotlinIdeaAnalysisBundle.message(
+            "platform.module.0.including.1",
+            platformModule.displayedName,
+            commonModules.map { it.displayedName }
+        )
 
     override fun createModificationTracker() = platformModule.createModificationTracker()
 }

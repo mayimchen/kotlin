@@ -320,6 +320,11 @@ public class NewJavaToKotlinConverterSingleFileTestGenerated extends AbstractNew
             runTest("nj2k/testData/newJ2k/arrayType/arrayInitializationStatementWithDimension3d.java");
         }
 
+        @TestMetadata("arrayInitializationStatementWithDimensionAndSpace.java")
+        public void testArrayInitializationStatementWithDimensionAndSpace() throws Exception {
+            runTest("nj2k/testData/newJ2k/arrayType/arrayInitializationStatementWithDimensionAndSpace.java");
+        }
+
         @TestMetadata("arrayInitializationStatementWithDimensionExplicit.java")
         public void testArrayInitializationStatementWithDimensionExplicit() throws Exception {
             runTest("nj2k/testData/newJ2k/arrayType/arrayInitializationStatementWithDimensionExplicit.java");
@@ -1580,6 +1585,11 @@ public class NewJavaToKotlinConverterSingleFileTestGenerated extends AbstractNew
             runTest("nj2k/testData/newJ2k/detectProperties/IsPrefix.java");
         }
 
+        @TestMetadata("IsPrefixSetterCall.java")
+        public void testIsPrefixSetterCall() throws Exception {
+            runTest("nj2k/testData/newJ2k/detectProperties/IsPrefixSetterCall.java");
+        }
+
         @TestMetadata("JavaKeywordPropertyName.java")
         public void testJavaKeywordPropertyName() throws Exception {
             runTest("nj2k/testData/newJ2k/detectProperties/JavaKeywordPropertyName.java");
@@ -1852,6 +1862,11 @@ public class NewJavaToKotlinConverterSingleFileTestGenerated extends AbstractNew
         @TestMetadata("fieldsWithPrimaryPrivateConstructor.java")
         public void testFieldsWithPrimaryPrivateConstructor() throws Exception {
             runTest("nj2k/testData/newJ2k/enum/fieldsWithPrimaryPrivateConstructor.java");
+        }
+
+        @TestMetadata("implicitlyPrivateConstructorsEnum.java")
+        public void testImplicitlyPrivateConstructorsEnum() throws Exception {
+            runTest("nj2k/testData/newJ2k/enum/implicitlyPrivateConstructorsEnum.java");
         }
 
         @TestMetadata("internalEnum.java")
@@ -3591,6 +3606,11 @@ public class NewJavaToKotlinConverterSingleFileTestGenerated extends AbstractNew
             runTest("nj2k/testData/newJ2k/methodCallExpression/conflictJavaMethodCallWithExplicitImports.java");
         }
 
+        @TestMetadata("defaultParamsWithVararg.java")
+        public void testDefaultParamsWithVararg() throws Exception {
+            runTest("nj2k/testData/newJ2k/methodCallExpression/defaultParamsWithVararg.java");
+        }
+
         @TestMetadata("emptyCall.java")
         public void testEmptyCall() throws Exception {
             runTest("nj2k/testData/newJ2k/methodCallExpression/emptyCall.java");
@@ -5210,6 +5230,11 @@ public class NewJavaToKotlinConverterSingleFileTestGenerated extends AbstractNew
         @TestMetadata("capturedWildcardTypeAsLambdaParameter.java")
         public void testCapturedWildcardTypeAsLambdaParameter() throws Exception {
             runTest("nj2k/testData/newJ2k/types/capturedWildcardTypeAsLambdaParameter.java");
+        }
+
+        @TestMetadata("nullType.java")
+        public void testNullType() throws Exception {
+            runTest("nj2k/testData/newJ2k/types/nullType.java");
         }
 
         @TestMetadata("recursiveType.java")

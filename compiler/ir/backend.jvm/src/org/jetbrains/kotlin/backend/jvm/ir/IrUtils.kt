@@ -5,6 +5,7 @@
 
 package org.jetbrains.kotlin.backend.jvm.ir
 
+import org.jetbrains.kotlin.backend.common.ir.ir2string
 import org.jetbrains.kotlin.backend.common.lower.IrLoweringContext
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
@@ -15,6 +16,7 @@ import org.jetbrains.kotlin.backend.jvm.descriptors.JvmDeclarationFactory
 import org.jetbrains.kotlin.backend.jvm.lower.inlineclasses.unboxInlineClass
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.codegen.inline.coroutines.FOR_INLINE_SUFFIX
+import org.jetbrains.kotlin.config.JvmDefaultMode
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
 import org.jetbrains.kotlin.descriptors.deserialization.PLATFORM_DEPENDENT_ANNOTATION_FQ_NAME
@@ -28,6 +30,7 @@ import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetFieldImpl
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
+import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.symbols.IrTypeParameterSymbol
 import org.jetbrains.kotlin.ir.types.*
@@ -38,8 +41,10 @@ import org.jetbrains.kotlin.ir.types.impl.originalKotlinType
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.load.java.JavaVisibilities
+import org.jetbrains.kotlin.metadata.jvm.deserialization.JvmProtoBufUtil
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.jvm.annotations.JVM_DEFAULT_FQ_NAME
+import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedClassDescriptor
 
 /**
  * Perform as much type erasure as is significant for JVM signature generation.
@@ -142,6 +147,20 @@ fun IrDeclaration.getJvmNameFromAnnotation(): String? {
 
 val IrFunction.propertyIfAccessor: IrDeclaration
     get() = (this as? IrSimpleFunction)?.correspondingPropertySymbol?.owner ?: this
+
+fun IrFunction.isSimpleFunctionCompiledToJvmDefault(jvmDefaultMode: JvmDefaultMode): Boolean {
+    return (this as? IrSimpleFunction)?.isCompiledToJvmDefault(jvmDefaultMode) == true
+}
+
+fun IrSimpleFunction.isCompiledToJvmDefault(jvmDefaultMode: JvmDefaultMode): Boolean {
+    assert(!isFakeOverride && parentAsClass.isInterface && modality != Modality.ABSTRACT) {
+        "`isCompiledToJvmDefault` should be called on non-fakeoverrides and non-abstract methods from interfaces ${ir2string(this)}"
+    }
+    if (hasJvmDefault()) return true
+    val parentDescriptor = propertyIfAccessor.parentAsClass.descriptor
+    if (parentDescriptor !is DeserializedClassDescriptor) return jvmDefaultMode.forAllMethodsWithBody
+    return JvmProtoBufUtil.isNewPlaceForBodyGeneration(parentDescriptor.classProto)
+}
 
 fun IrFunction.hasJvmDefault(): Boolean = propertyIfAccessor.hasAnnotation(JVM_DEFAULT_FQ_NAME)
 fun IrFunction.hasPlatformDependent(): Boolean = propertyIfAccessor.hasAnnotation(PLATFORM_DEPENDENT_ANNOTATION_FQ_NAME)
@@ -275,9 +294,20 @@ fun IrFunctionAccessExpression.copyFromWithPlaceholderTypeArguments(existingCall
 
 // Check whether a function maps to an abstract method.
 // For non-interface methods or interface methods coming from Java the modality is correct. Kotlin interface methods
-// are abstract unless they are annotated with @JvmDefault or @PlatformDependent or they override a method with
-// such an annotation.
-val IrSimpleFunction.isJvmAbstract: Boolean
-    get() = (modality == Modality.ABSTRACT) ||
-            (parentAsClass.isJvmInterface && !hasJvmDefault() && !hasPlatformDependent()
-                    && (!isFakeOverride || overriddenSymbols.all { it.owner.isJvmAbstract }))
+// are abstract unless they are annotated @PlatformDependent or compiled to JVM default (with @JvmDefault annotation or without)
+// or they override such method.
+fun IrSimpleFunction.isJvmAbstract(jvmDefaultMode: JvmDefaultMode): Boolean {
+    if (modality == Modality.ABSTRACT) return true
+    if (!parentAsClass.isJvmInterface) return false
+    return resolveFakeOverride()?.run { !isCompiledToJvmDefault(jvmDefaultMode) && !hasPlatformDependent() } != false
+}
+
+fun firstSuperMethodFromKotlin(
+    override: IrSimpleFunction,
+    implementation: IrSimpleFunction
+): IrSimpleFunctionSymbol {
+    return override.overriddenSymbols.first {
+        val owner = it.owner
+        owner.modality != Modality.ABSTRACT && owner.overrides(implementation)
+    }
+}

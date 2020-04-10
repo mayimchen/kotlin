@@ -26,7 +26,7 @@ import com.intellij.ui.EditorNotifications
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.KotlinJvmBundle
 import org.jetbrains.kotlin.idea.KotlinLanguage
-import org.jetbrains.kotlin.idea.configuration.ui.KotlinConfigurationCheckerComponent
+import org.jetbrains.kotlin.idea.configuration.ui.KotlinConfigurationCheckerService
 import org.jetbrains.kotlin.idea.project.TargetPlatformDetector
 import org.jetbrains.kotlin.idea.util.application.runWriteAction
 import org.jetbrains.kotlin.idea.versions.SuppressNotificationState
@@ -60,9 +60,9 @@ class KotlinSetupEnvironmentNotificationProvider(private val myProject: Project)
             return createSetupSdkPanel(myProject, psiFile)
         }
 
-        val configurationCheckerComponent = KotlinConfigurationCheckerComponent.getInstanceIfNotDisposed(module.project) ?: return null
+        val configurationChecker = KotlinConfigurationCheckerService.getInstance(module.project)
 
-        if (!configurationCheckerComponent.isSyncing &&
+        if (!configurationChecker.isSyncing &&
             isNotConfiguredNotificationRequired(module.toModuleGroup()) &&
             !hasAnyKotlinRuntimeInScope(module) &&
             UnsupportedAbiVersionNotificationPanelProvider.collectBadRoots(module).isEmpty()
@@ -97,7 +97,7 @@ class KotlinSetupEnvironmentNotificationProvider(private val myProject: Project)
                 setText(KotlinJvmBundle.message("kotlin.not.configured"))
                 val configurators = getAbleToRunConfigurators(module).toList()
                 if (configurators.isNotEmpty()) {
-                    createComponentActionLabel(KotlinJvmBundle.message("configure")) { label ->
+                    createComponentActionLabel(KotlinJvmBundle.message("action.text.configure")) { label ->
                         val singleConfigurator = configurators.singleOrNull()
                         if (singleConfigurator != null) {
                             singleConfigurator.apply(module.project)
@@ -107,7 +107,7 @@ class KotlinSetupEnvironmentNotificationProvider(private val myProject: Project)
                         }
                     }
 
-                    createComponentActionLabel(KotlinJvmBundle.message("ignore")) {
+                    createComponentActionLabel(KotlinJvmBundle.message("action.text.ignore")) {
                         SuppressNotificationState.suppressKotlinNotConfigured(module)
                         EditorNotifications.getInstance(module.project).updateAllNotifications()
                     }
@@ -123,7 +123,7 @@ class KotlinSetupEnvironmentNotificationProvider(private val myProject: Project)
 
         fun createConfiguratorsPopup(project: Project, configurators: List<KotlinProjectConfigurator>): ListPopup {
             val step = object : BaseListPopupStep<KotlinProjectConfigurator>(
-                KotlinJvmBundle.message("choose.configurator"),
+                KotlinJvmBundle.message("title.choose.configurator"),
                 configurators
             ) {
                 override fun getTextFor(value: KotlinProjectConfigurator?) = value?.presentableText ?: "<none>"

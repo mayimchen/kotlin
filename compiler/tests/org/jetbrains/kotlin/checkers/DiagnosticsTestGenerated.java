@@ -1891,6 +1891,11 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTestWithFirVali
                 runTest("compiler/testData/diagnostics/tests/callableReference/kt35959.kt");
             }
 
+            @TestMetadata("kt37530.kt")
+            public void testKt37530() throws Exception {
+                runTest("compiler/testData/diagnostics/tests/callableReference/kt37530.kt");
+            }
+
             @TestMetadata("kt7430_wrongClassOnLHS.kt")
             public void testKt7430_wrongClassOnLHS() throws Exception {
                 runTest("compiler/testData/diagnostics/tests/callableReference/kt7430_wrongClassOnLHS.kt");
@@ -6977,11 +6982,6 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTestWithFirVali
                     runTest("compiler/testData/diagnostics/tests/duplicateJvmSignature/specialNames/dataClassCopy.kt");
                 }
 
-                @TestMetadata("defaults.kt")
-                public void testDefaults() throws Exception {
-                    runTest("compiler/testData/diagnostics/tests/duplicateJvmSignature/specialNames/defaults.kt");
-                }
-
                 @TestMetadata("delegationBy.kt")
                 public void testDelegationBy() throws Exception {
                     runTest("compiler/testData/diagnostics/tests/duplicateJvmSignature/specialNames/delegationBy.kt");
@@ -10732,6 +10732,11 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTestWithFirVali
                     runTest("compiler/testData/diagnostics/tests/inference/constraints/approximationWithDefNotNullInInvPositionDuringInference.kt");
                 }
 
+                @TestMetadata("complexDependencyWihtoutProperConstraints.kt")
+                public void testComplexDependencyWihtoutProperConstraints() throws Exception {
+                    runTest("compiler/testData/diagnostics/tests/inference/constraints/complexDependencyWihtoutProperConstraints.kt");
+                }
+
                 @TestMetadata("constraintFromVariantTypeWithNestedProjection.kt")
                 public void testConstraintFromVariantTypeWithNestedProjection() throws Exception {
                     runTest("compiler/testData/diagnostics/tests/inference/constraints/constraintFromVariantTypeWithNestedProjection.kt");
@@ -10993,6 +10998,11 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTestWithFirVali
                     runTest("compiler/testData/diagnostics/tests/inference/nothingType/inferArgumentToNothingFromNullConstant.kt");
                 }
 
+                @TestMetadata("inferenceWithRecursiveGenericsAndNothing.kt")
+                public void testInferenceWithRecursiveGenericsAndNothing() throws Exception {
+                    runTest("compiler/testData/diagnostics/tests/inference/nothingType/inferenceWithRecursiveGenericsAndNothing.kt");
+                }
+
                 @TestMetadata("kt24490.kt")
                 public void testKt24490() throws Exception {
                     runTest("compiler/testData/diagnostics/tests/inference/nothingType/kt24490.kt");
@@ -11051,6 +11061,11 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTestWithFirVali
                 @TestMetadata("platformNothingAsUsefulConstraint.kt")
                 public void testPlatformNothingAsUsefulConstraint() throws Exception {
                     runTest("compiler/testData/diagnostics/tests/inference/nothingType/platformNothingAsUsefulConstraint.kt");
+                }
+
+                @TestMetadata("reifiedParameterWithRecursiveBound.kt")
+                public void testReifiedParameterWithRecursiveBound() throws Exception {
+                    runTest("compiler/testData/diagnostics/tests/inference/nothingType/reifiedParameterWithRecursiveBound.kt");
                 }
             }
 
@@ -11468,6 +11483,11 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTestWithFirVali
                 @TestMetadata("kt37043_2.kt")
                 public void testKt37043_2() throws Exception {
                     runTest("compiler/testData/diagnostics/tests/inference/regressions/kt37043_2.kt");
+                }
+
+                @TestMetadata("kt37650.kt")
+                public void testKt37650() throws Exception {
+                    runTest("compiler/testData/diagnostics/tests/inference/regressions/kt37650.kt");
                 }
 
                 @TestMetadata("kt4420.kt")
@@ -15845,6 +15865,11 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTestWithFirVali
             @TestMetadata("defaultParameters.kt")
             public void testDefaultParameters() throws Exception {
                 runTest("compiler/testData/diagnostics/tests/overload/defaultParameters.kt");
+            }
+
+            @TestMetadata("disambiguateByFailedAbstractClassCheck.kt")
+            public void testDisambiguateByFailedAbstractClassCheck() throws Exception {
+                runTest("compiler/testData/diagnostics/tests/overload/disambiguateByFailedAbstractClassCheck.kt");
             }
 
             @TestMetadata("EmptyArgumentListInLambda.kt")
@@ -23008,6 +23033,11 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTestWithFirVali
                 public void testOnPropertyAccessor() throws Exception {
                     runTest("compiler/testData/diagnostics/tests/suppress/oneWarning/onPropertyAccessor.kt");
                 }
+
+                @TestMetadata("onTypeParameter.kt")
+                public void testOnTypeParameter() throws Exception {
+                    runTest("compiler/testData/diagnostics/tests/suppress/oneWarning/onTypeParameter.kt");
+                }
             }
         }
 
@@ -24078,6 +24108,11 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTestWithFirVali
             @TestMetadata("typeAliasInvisibleObject.kt")
             public void testTypeAliasInvisibleObject() throws Exception {
                 runTest("compiler/testData/diagnostics/tests/typealias/typeAliasInvisibleObject.kt");
+            }
+
+            @TestMetadata("typeAliasIsUsedAsATypeArgumentInOtherAlias.kt")
+            public void testTypeAliasIsUsedAsATypeArgumentInOtherAlias() throws Exception {
+                runTest("compiler/testData/diagnostics/tests/typealias/typeAliasIsUsedAsATypeArgumentInOtherAlias.kt");
             }
 
             @TestMetadata("typeAliasNotNull.kt")

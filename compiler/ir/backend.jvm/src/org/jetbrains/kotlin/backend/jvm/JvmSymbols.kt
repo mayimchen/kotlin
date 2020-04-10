@@ -21,6 +21,7 @@ import org.jetbrains.kotlin.descriptors.impl.EmptyPackageFragmentDescriptor
 import org.jetbrains.kotlin.ir.builders.declarations.*
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
+import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrPackageFragment
 import org.jetbrains.kotlin.ir.declarations.impl.IrExternalPackageFragmentImpl
 import org.jetbrains.kotlin.ir.symbols.*
@@ -49,6 +50,8 @@ class JvmSymbols(
     private val javaLangPackage: IrPackageFragment = createPackage(FqName("java.lang"))
 
     private val irBuiltIns = context.irBuiltIns
+
+    private val generateOptimizedCallableReferenceSuperClasses = context.state.generateOptimizedCallableReferenceSuperClasses
 
     private val nullPointerExceptionClass: IrClassSymbol =
         createClass(FqName("java.lang.NullPointerException")) { klass ->
@@ -307,6 +310,38 @@ class JvmSymbols(
     val functionReferenceGetName: IrSimpleFunctionSymbol = functionReference.functionByName("getName")
     val functionReferenceGetOwner: IrSimpleFunctionSymbol = functionReference.functionByName("getOwner")
 
+    val functionReferenceImpl: IrClassSymbol =
+        createClass(FqName("kotlin.jvm.internal.FunctionReferenceImpl"), classModality = Modality.OPEN) { klass ->
+            klass.superTypes = listOf(functionReference.defaultType)
+
+            if (generateOptimizedCallableReferenceSuperClasses) {
+                klass.generateCallableReferenceSuperclassConstructors(withArity = true)
+            }
+        }
+
+    val adaptedFunctionReference: IrClassSymbol =
+        createClass(FqName("kotlin.jvm.internal.AdaptedFunctionReference"), classModality = Modality.OPEN) { klass ->
+            klass.superTypes = listOf(irBuiltIns.anyType)
+            klass.generateCallableReferenceSuperclassConstructors(withArity = true)
+        }
+
+    private fun IrClass.generateCallableReferenceSuperclassConstructors(withArity: Boolean) {
+        for (hasBoundReceiver in listOf(false, true)) {
+            addConstructor().apply {
+                if (withArity) {
+                    addValueParameter("arity", irBuiltIns.intType)
+                }
+                if (hasBoundReceiver) {
+                    addValueParameter("receiver", irBuiltIns.anyNType)
+                }
+                addValueParameter("owner", javaLangClass.starProjectedType)
+                addValueParameter("name", irBuiltIns.stringType)
+                addValueParameter("signature", irBuiltIns.stringType)
+                addValueParameter("flags", irBuiltIns.intType)
+            }
+        }
+    }
+
     fun getFunction(parameterCount: Int): IrClassSymbol =
         symbolTable.referenceClass(builtIns.getFunction(parameterCount))
 
@@ -379,6 +414,11 @@ class JvmSymbols(
                         addValueParameter("name", irBuiltIns.stringType)
                         addValueParameter("string", irBuiltIns.stringType)
                     }
+
+                    if (generateOptimizedCallableReferenceSuperClasses) {
+                        klass.generateCallableReferenceSuperclassConstructors(withArity = false)
+                    }
+
                     klass.superTypes += getPropertyReferenceClass(mutable, parameterCount, false).defaultType
                 } else {
                     klass.addConstructor()

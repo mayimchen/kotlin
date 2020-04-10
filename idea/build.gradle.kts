@@ -1,7 +1,11 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
 plugins {
     kotlin("jvm")
     id("jps-compatible")
 }
+
+val kotlinVersion: String by rootProject.extra
 
 repositories {
     maven("https://jetbrains.bintray.com/markdown")
@@ -95,11 +99,7 @@ dependencies {
 
     compileOnly(commonDep("org.jetbrains", "markdown"))
     compileOnly(commonDep("com.google.code.findbugs", "jsr305"))
-    if (Platform[201].orHigher()) {
-        compileOnly(intellijPluginDep("platform-langInjection"))
-    } else {
-        compileOnly(intellijPluginDep("IntelliLang"))
-    }
+    compileOnly(intellijPluginDep("IntelliLang"))
     compileOnly(intellijPluginDep("copyright"))
     compileOnly(intellijPluginDep("properties"))
     compileOnly(intellijPluginDep("java-i18n"))
@@ -119,7 +119,6 @@ dependencies {
     testCompileOnly(intellijPluginDep("coverage"))
 
     testRuntimeOnly(toolsJar())
-    testRuntime(project(":native:kotlin-native-utils")) { isTransitive = false }
     testRuntime(commonDep("org.jetbrains", "markdown"))
     testRuntime(project(":plugins:kapt3-idea")) { isTransitive = false }
     testRuntime(project(":kotlin-reflect"))
@@ -149,7 +148,7 @@ dependencies {
         testRuntime(project(it))
     }
 
-    testCompile(intellijPluginDep(if (Platform[201].orHigher()) "platform-langInjection" else "IntelliLang"))
+    testCompile(intellijPluginDep("IntelliLang"))
     testCompile(intellijPluginDep("copyright"))
     testCompile(intellijPluginDep("properties"))
     testCompile(intellijPluginDep("java-i18n"))
@@ -186,6 +185,17 @@ dependencies {
 }
 
 tasks.named<Copy>("processResources") {
+    val currentIde = IdeVersionConfigurator.currentIde
+    val pluginPatchNumber = findProperty("pluginPatchNumber") as String? ?: "1"
+    val defaultPluginVersion = "$kotlinVersion-${currentIde.displayVersion}-$pluginPatchNumber"
+    val pluginVersion = findProperty("pluginVersion") as String? ?: defaultPluginVersion
+
+    inputs.property("pluginVersion", pluginVersion)
+
+    filesMatching("META-INF/plugin.xml") {
+        filter<ReplaceTokens>("tokens" to mapOf("snapshot" to pluginVersion))
+    }
+
     from(provider { project(":compiler:cli-common").mainSourceSet.resources }) {
         include("META-INF/extensions/compiler.xml")
     }

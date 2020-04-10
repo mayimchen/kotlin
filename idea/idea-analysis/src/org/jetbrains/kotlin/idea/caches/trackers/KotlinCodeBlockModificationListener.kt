@@ -72,7 +72,7 @@ class KotlinCodeBlockModificationListener(
 
     init {
         val model = PomManager.getModel(project)
-        val messageBusConnection = project.messageBus.connect()
+        val messageBusConnection = project.messageBus.connect(project)
 
         if (isLanguageTrackerEnabled) {
             (PsiManager.getInstance(project) as PsiManagerImpl).addTreeChangePreprocessor(this)
@@ -175,29 +175,30 @@ class KotlinCodeBlockModificationListener(
             // When a code fragment is reparsed, Intellij doesn't do an AST diff and considers the entire
             // contents to be replaced, which is represented in a POM event as an empty list of changed elements
 
-            return elements.mapNotNull { element ->
+            return elements.map { element ->
                 val modificationScope = getInsideCodeBlockModificationScope(element.psi) ?: return emptyList()
                 modificationScope.blockDeclaration
             }
         }
 
-        private fun isCommentChange(changeSet: TreeChangeEvent): Boolean =
+        private fun isSpecificChange(changeSet: TreeChangeEvent, precondition: (ASTNode?) -> Boolean): Boolean =
             changeSet.changedElements.all { changedElement ->
                 val changesByElement = changeSet.getChangesByElement(changedElement)
                 changesByElement.affectedChildren.all { affectedChild ->
-                    if (!(affectedChild is PsiComment || affectedChild is KDoc)) return@all false
+                    if (!precondition(affectedChild)) return@all false
                     val changeByChild = changesByElement.getChangeByChild(affectedChild)
                     return@all if (changeByChild is ChangeInfoImpl) {
                         val oldChild = changeByChild.oldChild
-                        oldChild is PsiComment || oldChild is KDoc
+                        precondition(oldChild)
                     } else false
                 }
             }
 
+        private fun isCommentChange(changeSet: TreeChangeEvent): Boolean =
+            isSpecificChange(changeSet) { it is PsiComment || it is KDoc }
+
         private fun isFormattingChange(changeSet: TreeChangeEvent): Boolean =
-            changeSet.changedElements.all {
-                changeSet.getChangesByElement(it).affectedChildren.all { c -> c is PsiWhiteSpace }
-            }
+            isSpecificChange(changeSet) { it is PsiWhiteSpace }
 
         /**
          * Has to be aligned with [getInsideCodeBlockModificationScope] :

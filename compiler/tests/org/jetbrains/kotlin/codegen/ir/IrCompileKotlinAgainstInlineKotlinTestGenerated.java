@@ -41,6 +41,11 @@ public class IrCompileKotlinAgainstInlineKotlinTestGenerated extends AbstractIrC
             KotlinTestUtils.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/boxInline/anonymousObject"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JVM_IR, true);
         }
 
+        @TestMetadata("anonymousObjectInDefault.kt")
+        public void testAnonymousObjectInDefault() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/anonymousObject/anonymousObjectInDefault.kt");
+        }
+
         @TestMetadata("anonymousObjectOnCallSite.kt")
         public void testAnonymousObjectOnCallSite() throws Exception {
             runTest("compiler/testData/codegen/boxInline/anonymousObject/anonymousObjectOnCallSite.kt");
@@ -79,6 +84,16 @@ public class IrCompileKotlinAgainstInlineKotlinTestGenerated extends AbstractIrC
         @TestMetadata("capturedLambdaInInlineObject.kt")
         public void testCapturedLambdaInInlineObject() throws Exception {
             runTest("compiler/testData/codegen/boxInline/anonymousObject/capturedLambdaInInlineObject.kt");
+        }
+
+        @TestMetadata("capturedLocalFun.kt")
+        public void testCapturedLocalFun() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/anonymousObject/capturedLocalFun.kt");
+        }
+
+        @TestMetadata("capturedLocalFunRef.kt")
+        public void testCapturedLocalFunRef() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/anonymousObject/capturedLocalFunRef.kt");
         }
 
         @TestMetadata("changingReturnType.kt")
@@ -271,9 +286,19 @@ public class IrCompileKotlinAgainstInlineKotlinTestGenerated extends AbstractIrC
             runTest("compiler/testData/codegen/boxInline/anonymousObject/sam.kt");
         }
 
+        @TestMetadata("sharedFromCrossinline.kt")
+        public void testSharedFromCrossinline() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/anonymousObject/sharedFromCrossinline.kt");
+        }
+
         @TestMetadata("superConstructorWithObjectParameter.kt")
         public void testSuperConstructorWithObjectParameter() throws Exception {
             runTest("compiler/testData/codegen/boxInline/anonymousObject/superConstructorWithObjectParameter.kt");
+        }
+
+        @TestMetadata("typeInfo.kt")
+        public void testTypeInfo() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/anonymousObject/typeInfo.kt");
         }
 
         @TestMetadata("withInlineMethod.kt")
@@ -3240,6 +3265,11 @@ public class IrCompileKotlinAgainstInlineKotlinTestGenerated extends AbstractIrC
             runTest("compiler/testData/codegen/boxInline/smap/assertion.kt");
         }
 
+        @TestMetadata("classCycle.kt")
+        public void testClassCycle() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/smap/classCycle.kt");
+        }
+
         @TestMetadata("classFromDefaultPackage.kt")
         public void testClassFromDefaultPackage() throws Exception {
             runTest("compiler/testData/codegen/boxInline/smap/classFromDefaultPackage.kt");
@@ -3253,6 +3283,16 @@ public class IrCompileKotlinAgainstInlineKotlinTestGenerated extends AbstractIrC
         @TestMetadata("defaultFunction.kt")
         public void testDefaultFunction() throws Exception {
             runTest("compiler/testData/codegen/boxInline/smap/defaultFunction.kt");
+        }
+
+        @TestMetadata("defaultFunctionWithInlineCall.kt")
+        public void testDefaultFunctionWithInlineCall() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/smap/defaultFunctionWithInlineCall.kt");
+        }
+
+        @TestMetadata("interleavedFiles.kt")
+        public void testInterleavedFiles() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/smap/interleavedFiles.kt");
         }
 
         @TestMetadata("kt23369.kt")
@@ -3270,14 +3310,44 @@ public class IrCompileKotlinAgainstInlineKotlinTestGenerated extends AbstractIrC
             runTest("compiler/testData/codegen/boxInline/smap/kt23369_3.kt");
         }
 
+        @TestMetadata("kt35006.kt")
+        public void testKt35006() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/smap/kt35006.kt");
+        }
+
+        @TestMetadata("multiFileFacade.kt")
+        public void testMultiFileFacade() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/smap/multiFileFacade.kt");
+        }
+
         @TestMetadata("oneFile.kt")
         public void testOneFile() throws Exception {
             runTest("compiler/testData/codegen/boxInline/smap/oneFile.kt");
         }
 
+        @TestMetadata("rangeFolding.kt")
+        public void testRangeFolding() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/smap/rangeFolding.kt");
+        }
+
+        @TestMetadata("rangeFoldingInClass.kt")
+        public void testRangeFoldingInClass() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/smap/rangeFoldingInClass.kt");
+        }
+
         @TestMetadata("smap.kt")
         public void testSmap() throws Exception {
             runTest("compiler/testData/codegen/boxInline/smap/smap.kt");
+        }
+
+        @TestMetadata("smapWithNewSyntax.kt")
+        public void testSmapWithNewSyntax() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/smap/smapWithNewSyntax.kt");
+        }
+
+        @TestMetadata("smapWithOldSyntax.kt")
+        public void testSmapWithOldSyntax() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/smap/smapWithOldSyntax.kt");
         }
 
         @TestMetadata("compiler/testData/codegen/boxInline/smap/anonymous")
@@ -3753,6 +3823,11 @@ public class IrCompileKotlinAgainstInlineKotlinTestGenerated extends AbstractIrC
             runTest("compiler/testData/codegen/boxInline/suspend/nestedMethodWith2XParameter.kt");
         }
 
+        @TestMetadata("nonLocalReturn.kt")
+        public void testNonLocalReturn() throws Exception {
+            runTest("compiler/testData/codegen/boxInline/suspend/nonLocalReturn.kt");
+        }
+
         @TestMetadata("nonSuspendCrossinline.kt")
         public void testNonSuspendCrossinline_1_3() throws Exception {
             runTestWithPackageReplacement("compiler/testData/codegen/boxInline/suspend/nonSuspendCrossinline.kt", "kotlin.coroutines");
@@ -3858,6 +3933,16 @@ public class IrCompileKotlinAgainstInlineKotlinTestGenerated extends AbstractIrC
             @TestMetadata("simpleNamed.kt")
             public void testSimpleNamed() throws Exception {
                 runTest("compiler/testData/codegen/boxInline/suspend/inlineUsedAsNoinline/simpleNamed.kt");
+            }
+
+            @TestMetadata("withCapturedInlineLambda.kt")
+            public void testWithCapturedInlineLambda() throws Exception {
+                runTest("compiler/testData/codegen/boxInline/suspend/inlineUsedAsNoinline/withCapturedInlineLambda.kt");
+            }
+
+            @TestMetadata("withCapturedInlineLambda2.kt")
+            public void testWithCapturedInlineLambda2() throws Exception {
+                runTest("compiler/testData/codegen/boxInline/suspend/inlineUsedAsNoinline/withCapturedInlineLambda2.kt");
             }
         }
 

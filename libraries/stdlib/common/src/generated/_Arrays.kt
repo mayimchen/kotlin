@@ -3590,6 +3590,8 @@ public inline fun CharArray.dropWhile(predicate: (Char) -> Boolean): List<Char> 
 
 /**
  * Returns a list containing only elements matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun <T> Array<out T>.filter(predicate: (T) -> Boolean): List<T> {
     return filterTo(ArrayList<T>(), predicate)
@@ -3597,6 +3599,8 @@ public inline fun <T> Array<out T>.filter(predicate: (T) -> Boolean): List<T> {
 
 /**
  * Returns a list containing only elements matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun ByteArray.filter(predicate: (Byte) -> Boolean): List<Byte> {
     return filterTo(ArrayList<Byte>(), predicate)
@@ -3604,6 +3608,8 @@ public inline fun ByteArray.filter(predicate: (Byte) -> Boolean): List<Byte> {
 
 /**
  * Returns a list containing only elements matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun ShortArray.filter(predicate: (Short) -> Boolean): List<Short> {
     return filterTo(ArrayList<Short>(), predicate)
@@ -3611,6 +3617,8 @@ public inline fun ShortArray.filter(predicate: (Short) -> Boolean): List<Short> 
 
 /**
  * Returns a list containing only elements matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun IntArray.filter(predicate: (Int) -> Boolean): List<Int> {
     return filterTo(ArrayList<Int>(), predicate)
@@ -3618,6 +3626,8 @@ public inline fun IntArray.filter(predicate: (Int) -> Boolean): List<Int> {
 
 /**
  * Returns a list containing only elements matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun LongArray.filter(predicate: (Long) -> Boolean): List<Long> {
     return filterTo(ArrayList<Long>(), predicate)
@@ -3625,6 +3635,8 @@ public inline fun LongArray.filter(predicate: (Long) -> Boolean): List<Long> {
 
 /**
  * Returns a list containing only elements matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun FloatArray.filter(predicate: (Float) -> Boolean): List<Float> {
     return filterTo(ArrayList<Float>(), predicate)
@@ -3632,6 +3644,8 @@ public inline fun FloatArray.filter(predicate: (Float) -> Boolean): List<Float> 
 
 /**
  * Returns a list containing only elements matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun DoubleArray.filter(predicate: (Double) -> Boolean): List<Double> {
     return filterTo(ArrayList<Double>(), predicate)
@@ -3639,6 +3653,8 @@ public inline fun DoubleArray.filter(predicate: (Double) -> Boolean): List<Doubl
 
 /**
  * Returns a list containing only elements matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun BooleanArray.filter(predicate: (Boolean) -> Boolean): List<Boolean> {
     return filterTo(ArrayList<Boolean>(), predicate)
@@ -3646,6 +3662,8 @@ public inline fun BooleanArray.filter(predicate: (Boolean) -> Boolean): List<Boo
 
 /**
  * Returns a list containing only elements matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun CharArray.filter(predicate: (Char) -> Boolean): List<Char> {
     return filterTo(ArrayList<Char>(), predicate)
@@ -3857,6 +3875,8 @@ public inline fun <reified R, C : MutableCollection<in R>> Array<*>.filterIsInst
 
 /**
  * Returns a list containing all elements not matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun <T> Array<out T>.filterNot(predicate: (T) -> Boolean): List<T> {
     return filterNotTo(ArrayList<T>(), predicate)
@@ -3864,6 +3884,8 @@ public inline fun <T> Array<out T>.filterNot(predicate: (T) -> Boolean): List<T>
 
 /**
  * Returns a list containing all elements not matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun ByteArray.filterNot(predicate: (Byte) -> Boolean): List<Byte> {
     return filterNotTo(ArrayList<Byte>(), predicate)
@@ -3871,6 +3893,8 @@ public inline fun ByteArray.filterNot(predicate: (Byte) -> Boolean): List<Byte> 
 
 /**
  * Returns a list containing all elements not matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun ShortArray.filterNot(predicate: (Short) -> Boolean): List<Short> {
     return filterNotTo(ArrayList<Short>(), predicate)
@@ -3878,6 +3902,8 @@ public inline fun ShortArray.filterNot(predicate: (Short) -> Boolean): List<Shor
 
 /**
  * Returns a list containing all elements not matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun IntArray.filterNot(predicate: (Int) -> Boolean): List<Int> {
     return filterNotTo(ArrayList<Int>(), predicate)
@@ -3885,6 +3911,8 @@ public inline fun IntArray.filterNot(predicate: (Int) -> Boolean): List<Int> {
 
 /**
  * Returns a list containing all elements not matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun LongArray.filterNot(predicate: (Long) -> Boolean): List<Long> {
     return filterNotTo(ArrayList<Long>(), predicate)
@@ -3892,6 +3920,8 @@ public inline fun LongArray.filterNot(predicate: (Long) -> Boolean): List<Long> 
 
 /**
  * Returns a list containing all elements not matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun FloatArray.filterNot(predicate: (Float) -> Boolean): List<Float> {
     return filterNotTo(ArrayList<Float>(), predicate)
@@ -3899,6 +3929,8 @@ public inline fun FloatArray.filterNot(predicate: (Float) -> Boolean): List<Floa
 
 /**
  * Returns a list containing all elements not matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun DoubleArray.filterNot(predicate: (Double) -> Boolean): List<Double> {
     return filterNotTo(ArrayList<Double>(), predicate)
@@ -3906,6 +3938,8 @@ public inline fun DoubleArray.filterNot(predicate: (Double) -> Boolean): List<Do
 
 /**
  * Returns a list containing all elements not matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun BooleanArray.filterNot(predicate: (Boolean) -> Boolean): List<Boolean> {
     return filterNotTo(ArrayList<Boolean>(), predicate)
@@ -3913,6 +3947,8 @@ public inline fun BooleanArray.filterNot(predicate: (Boolean) -> Boolean): List<
 
 /**
  * Returns a list containing all elements not matching the given [predicate].
+ * 
+ * @sample samples.collections.Collections.Filtering.filter
  */
 public inline fun CharArray.filterNot(predicate: (Char) -> Boolean): List<Char> {
     return filterNotTo(ArrayList<Char>(), predicate)
@@ -3920,6 +3956,8 @@ public inline fun CharArray.filterNot(predicate: (Char) -> Boolean): List<Char> 
 
 /**
  * Returns a list containing all elements that are not `null`.
+ * 
+ * @sample samples.collections.Collections.Filtering.filterNotNull
  */
 public fun <T : Any> Array<out T?>.filterNotNull(): List<T> {
     return filterNotNullTo(ArrayList<T>())
@@ -5407,6 +5445,213 @@ public fun CharArray.reversedArray(): CharArray {
     for (i in 0..lastIndex)
         result[lastIndex - i] = this[i]
     return result
+}
+
+/**
+ * Randomly shuffles elements in this array in-place.
+ */
+@SinceKotlin("1.4")
+public fun <T> Array<T>.shuffle(): Unit {
+    shuffle(Random)
+}
+
+/**
+ * Randomly shuffles elements in this array in-place.
+ */
+@SinceKotlin("1.4")
+public fun ByteArray.shuffle(): Unit {
+    shuffle(Random)
+}
+
+/**
+ * Randomly shuffles elements in this array in-place.
+ */
+@SinceKotlin("1.4")
+public fun ShortArray.shuffle(): Unit {
+    shuffle(Random)
+}
+
+/**
+ * Randomly shuffles elements in this array in-place.
+ */
+@SinceKotlin("1.4")
+public fun IntArray.shuffle(): Unit {
+    shuffle(Random)
+}
+
+/**
+ * Randomly shuffles elements in this array in-place.
+ */
+@SinceKotlin("1.4")
+public fun LongArray.shuffle(): Unit {
+    shuffle(Random)
+}
+
+/**
+ * Randomly shuffles elements in this array in-place.
+ */
+@SinceKotlin("1.4")
+public fun FloatArray.shuffle(): Unit {
+    shuffle(Random)
+}
+
+/**
+ * Randomly shuffles elements in this array in-place.
+ */
+@SinceKotlin("1.4")
+public fun DoubleArray.shuffle(): Unit {
+    shuffle(Random)
+}
+
+/**
+ * Randomly shuffles elements in this array in-place.
+ */
+@SinceKotlin("1.4")
+public fun BooleanArray.shuffle(): Unit {
+    shuffle(Random)
+}
+
+/**
+ * Randomly shuffles elements in this array in-place.
+ */
+@SinceKotlin("1.4")
+public fun CharArray.shuffle(): Unit {
+    shuffle(Random)
+}
+
+/**
+ * Randomly shuffles elements in this array in-place using the specified [random] instance as the source of randomness.
+ * 
+ * See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+ */
+@SinceKotlin("1.4")
+public fun <T> Array<T>.shuffle(random: Random): Unit {
+    for (i in lastIndex downTo 1) {
+        val j = random.nextInt(i + 1)
+        val copy = this[i]
+        this[i] = this[j]
+        this[j] = copy
+    }
+}
+
+/**
+ * Randomly shuffles elements in this array in-place using the specified [random] instance as the source of randomness.
+ * 
+ * See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+ */
+@SinceKotlin("1.4")
+public fun ByteArray.shuffle(random: Random): Unit {
+    for (i in lastIndex downTo 1) {
+        val j = random.nextInt(i + 1)
+        val copy = this[i]
+        this[i] = this[j]
+        this[j] = copy
+    }
+}
+
+/**
+ * Randomly shuffles elements in this array in-place using the specified [random] instance as the source of randomness.
+ * 
+ * See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+ */
+@SinceKotlin("1.4")
+public fun ShortArray.shuffle(random: Random): Unit {
+    for (i in lastIndex downTo 1) {
+        val j = random.nextInt(i + 1)
+        val copy = this[i]
+        this[i] = this[j]
+        this[j] = copy
+    }
+}
+
+/**
+ * Randomly shuffles elements in this array in-place using the specified [random] instance as the source of randomness.
+ * 
+ * See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+ */
+@SinceKotlin("1.4")
+public fun IntArray.shuffle(random: Random): Unit {
+    for (i in lastIndex downTo 1) {
+        val j = random.nextInt(i + 1)
+        val copy = this[i]
+        this[i] = this[j]
+        this[j] = copy
+    }
+}
+
+/**
+ * Randomly shuffles elements in this array in-place using the specified [random] instance as the source of randomness.
+ * 
+ * See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+ */
+@SinceKotlin("1.4")
+public fun LongArray.shuffle(random: Random): Unit {
+    for (i in lastIndex downTo 1) {
+        val j = random.nextInt(i + 1)
+        val copy = this[i]
+        this[i] = this[j]
+        this[j] = copy
+    }
+}
+
+/**
+ * Randomly shuffles elements in this array in-place using the specified [random] instance as the source of randomness.
+ * 
+ * See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+ */
+@SinceKotlin("1.4")
+public fun FloatArray.shuffle(random: Random): Unit {
+    for (i in lastIndex downTo 1) {
+        val j = random.nextInt(i + 1)
+        val copy = this[i]
+        this[i] = this[j]
+        this[j] = copy
+    }
+}
+
+/**
+ * Randomly shuffles elements in this array in-place using the specified [random] instance as the source of randomness.
+ * 
+ * See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+ */
+@SinceKotlin("1.4")
+public fun DoubleArray.shuffle(random: Random): Unit {
+    for (i in lastIndex downTo 1) {
+        val j = random.nextInt(i + 1)
+        val copy = this[i]
+        this[i] = this[j]
+        this[j] = copy
+    }
+}
+
+/**
+ * Randomly shuffles elements in this array in-place using the specified [random] instance as the source of randomness.
+ * 
+ * See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+ */
+@SinceKotlin("1.4")
+public fun BooleanArray.shuffle(random: Random): Unit {
+    for (i in lastIndex downTo 1) {
+        val j = random.nextInt(i + 1)
+        val copy = this[i]
+        this[i] = this[j]
+        this[j] = copy
+    }
+}
+
+/**
+ * Randomly shuffles elements in this array in-place using the specified [random] instance as the source of randomness.
+ * 
+ * See: https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+ */
+@SinceKotlin("1.4")
+public fun CharArray.shuffle(random: Random): Unit {
+    for (i in lastIndex downTo 1) {
+        val j = random.nextInt(i + 1)
+        val copy = this[i]
+        this[i] = this[j]
+        this[j] = copy
+    }
 }
 
 /**
@@ -13266,6 +13511,87 @@ public inline fun CharArray.none(predicate: (Char) -> Boolean): Boolean {
 }
 
 /**
+ * Performs the given [action] on each element and returns the array itself afterwards.
+ */
+@SinceKotlin("1.4")
+@kotlin.internal.InlineOnly
+public inline fun <T> Array<out T>.onEach(action: (T) -> Unit): Array<out T> {
+    return apply { for (element in this) action(element) }
+}
+
+/**
+ * Performs the given [action] on each element and returns the array itself afterwards.
+ */
+@SinceKotlin("1.4")
+@kotlin.internal.InlineOnly
+public inline fun ByteArray.onEach(action: (Byte) -> Unit): ByteArray {
+    return apply { for (element in this) action(element) }
+}
+
+/**
+ * Performs the given [action] on each element and returns the array itself afterwards.
+ */
+@SinceKotlin("1.4")
+@kotlin.internal.InlineOnly
+public inline fun ShortArray.onEach(action: (Short) -> Unit): ShortArray {
+    return apply { for (element in this) action(element) }
+}
+
+/**
+ * Performs the given [action] on each element and returns the array itself afterwards.
+ */
+@SinceKotlin("1.4")
+@kotlin.internal.InlineOnly
+public inline fun IntArray.onEach(action: (Int) -> Unit): IntArray {
+    return apply { for (element in this) action(element) }
+}
+
+/**
+ * Performs the given [action] on each element and returns the array itself afterwards.
+ */
+@SinceKotlin("1.4")
+@kotlin.internal.InlineOnly
+public inline fun LongArray.onEach(action: (Long) -> Unit): LongArray {
+    return apply { for (element in this) action(element) }
+}
+
+/**
+ * Performs the given [action] on each element and returns the array itself afterwards.
+ */
+@SinceKotlin("1.4")
+@kotlin.internal.InlineOnly
+public inline fun FloatArray.onEach(action: (Float) -> Unit): FloatArray {
+    return apply { for (element in this) action(element) }
+}
+
+/**
+ * Performs the given [action] on each element and returns the array itself afterwards.
+ */
+@SinceKotlin("1.4")
+@kotlin.internal.InlineOnly
+public inline fun DoubleArray.onEach(action: (Double) -> Unit): DoubleArray {
+    return apply { for (element in this) action(element) }
+}
+
+/**
+ * Performs the given [action] on each element and returns the array itself afterwards.
+ */
+@SinceKotlin("1.4")
+@kotlin.internal.InlineOnly
+public inline fun BooleanArray.onEach(action: (Boolean) -> Unit): BooleanArray {
+    return apply { for (element in this) action(element) }
+}
+
+/**
+ * Performs the given [action] on each element and returns the array itself afterwards.
+ */
+@SinceKotlin("1.4")
+@kotlin.internal.InlineOnly
+public inline fun CharArray.onEach(action: (Char) -> Unit): CharArray {
+    return apply { for (element in this) action(element) }
+}
+
+/**
  * Accumulates value starting with the first element and applying [operation] from left to right to current accumulator value and each element.
  * 
  * @sample samples.collections.Collections.Aggregates.reduce
@@ -15624,6 +15950,8 @@ public fun <T : Any> Array<T?>.requireNoNulls(): Array<T> {
  * Splits the original array into pair of lists,
  * where *first* list contains elements for which [predicate] yielded `true`,
  * while *second* list contains elements for which [predicate] yielded `false`.
+ * 
+ * @sample samples.collections.Arrays.Transformations.partitionArrayOfPrimitives
  */
 public inline fun <T> Array<out T>.partition(predicate: (T) -> Boolean): Pair<List<T>, List<T>> {
     val first = ArrayList<T>()
@@ -15642,6 +15970,8 @@ public inline fun <T> Array<out T>.partition(predicate: (T) -> Boolean): Pair<Li
  * Splits the original array into pair of lists,
  * where *first* list contains elements for which [predicate] yielded `true`,
  * while *second* list contains elements for which [predicate] yielded `false`.
+ * 
+ * @sample samples.collections.Arrays.Transformations.partitionArrayOfPrimitives
  */
 public inline fun ByteArray.partition(predicate: (Byte) -> Boolean): Pair<List<Byte>, List<Byte>> {
     val first = ArrayList<Byte>()
@@ -15660,6 +15990,8 @@ public inline fun ByteArray.partition(predicate: (Byte) -> Boolean): Pair<List<B
  * Splits the original array into pair of lists,
  * where *first* list contains elements for which [predicate] yielded `true`,
  * while *second* list contains elements for which [predicate] yielded `false`.
+ * 
+ * @sample samples.collections.Arrays.Transformations.partitionArrayOfPrimitives
  */
 public inline fun ShortArray.partition(predicate: (Short) -> Boolean): Pair<List<Short>, List<Short>> {
     val first = ArrayList<Short>()
@@ -15678,6 +16010,8 @@ public inline fun ShortArray.partition(predicate: (Short) -> Boolean): Pair<List
  * Splits the original array into pair of lists,
  * where *first* list contains elements for which [predicate] yielded `true`,
  * while *second* list contains elements for which [predicate] yielded `false`.
+ * 
+ * @sample samples.collections.Arrays.Transformations.partitionArrayOfPrimitives
  */
 public inline fun IntArray.partition(predicate: (Int) -> Boolean): Pair<List<Int>, List<Int>> {
     val first = ArrayList<Int>()
@@ -15696,6 +16030,8 @@ public inline fun IntArray.partition(predicate: (Int) -> Boolean): Pair<List<Int
  * Splits the original array into pair of lists,
  * where *first* list contains elements for which [predicate] yielded `true`,
  * while *second* list contains elements for which [predicate] yielded `false`.
+ * 
+ * @sample samples.collections.Arrays.Transformations.partitionArrayOfPrimitives
  */
 public inline fun LongArray.partition(predicate: (Long) -> Boolean): Pair<List<Long>, List<Long>> {
     val first = ArrayList<Long>()
@@ -15714,6 +16050,8 @@ public inline fun LongArray.partition(predicate: (Long) -> Boolean): Pair<List<L
  * Splits the original array into pair of lists,
  * where *first* list contains elements for which [predicate] yielded `true`,
  * while *second* list contains elements for which [predicate] yielded `false`.
+ * 
+ * @sample samples.collections.Arrays.Transformations.partitionArrayOfPrimitives
  */
 public inline fun FloatArray.partition(predicate: (Float) -> Boolean): Pair<List<Float>, List<Float>> {
     val first = ArrayList<Float>()
@@ -15732,6 +16070,8 @@ public inline fun FloatArray.partition(predicate: (Float) -> Boolean): Pair<List
  * Splits the original array into pair of lists,
  * where *first* list contains elements for which [predicate] yielded `true`,
  * while *second* list contains elements for which [predicate] yielded `false`.
+ * 
+ * @sample samples.collections.Arrays.Transformations.partitionArrayOfPrimitives
  */
 public inline fun DoubleArray.partition(predicate: (Double) -> Boolean): Pair<List<Double>, List<Double>> {
     val first = ArrayList<Double>()
@@ -15750,6 +16090,8 @@ public inline fun DoubleArray.partition(predicate: (Double) -> Boolean): Pair<Li
  * Splits the original array into pair of lists,
  * where *first* list contains elements for which [predicate] yielded `true`,
  * while *second* list contains elements for which [predicate] yielded `false`.
+ * 
+ * @sample samples.collections.Arrays.Transformations.partitionArrayOfPrimitives
  */
 public inline fun BooleanArray.partition(predicate: (Boolean) -> Boolean): Pair<List<Boolean>, List<Boolean>> {
     val first = ArrayList<Boolean>()
@@ -15768,6 +16110,8 @@ public inline fun BooleanArray.partition(predicate: (Boolean) -> Boolean): Pair<
  * Splits the original array into pair of lists,
  * where *first* list contains elements for which [predicate] yielded `true`,
  * while *second* list contains elements for which [predicate] yielded `false`.
+ * 
+ * @sample samples.collections.Arrays.Transformations.partitionArrayOfPrimitives
  */
 public inline fun CharArray.partition(predicate: (Char) -> Boolean): Pair<List<Char>, List<Char>> {
     val first = ArrayList<Char>()

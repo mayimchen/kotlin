@@ -12,23 +12,20 @@ import com.intellij.openapi.externalSystem.model.project.ModuleData
 import com.intellij.openapi.externalSystem.model.project.ProjectData
 import com.intellij.openapi.externalSystem.model.task.TaskData
 import com.intellij.openapi.externalSystem.util.Order
-import com.intellij.openapi.util.io.StreamUtil
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.util.Consumer
 import org.gradle.tooling.model.idea.IdeaModule
+import org.jetbrains.annotations.NonNls
 import org.jetbrains.kotlin.gradle.KotlinMPPGradleModel
 import org.jetbrains.kotlin.gradle.KotlinMPPGradleModelBuilder
 import org.jetbrains.kotlin.idea.configuration.getMppModel
 import org.jetbrains.plugins.gradle.service.project.AbstractProjectResolverExtension
 import org.jetbrains.plugins.gradle.service.project.GradleProjectResolverExtension
-import org.jetbrains.plugins.gradle.service.project.JavaGradleProjectResolver
-import java.io.IOException
-import java.lang.Boolean
-import java.nio.charset.StandardCharsets
 
 @Order(Int.MIN_VALUE)
 open class KotlinTestTasksResolver : AbstractProjectResolverExtension() {
     companion object {
+        @NonNls
         private const val ENABLED_REGISTRY_KEY = "kotlin.gradle.testing.enabled"
     }
 
@@ -59,7 +56,7 @@ open class KotlinTestTasksResolver : AbstractProjectResolverExtension() {
     ): MutableCollection<TaskData> {
         val testTaskNames = mutableSetOf<String>().apply {
             mppModel.targets.forEach { target ->
-                target.testTasks.forEach { testTaskModel ->
+                target.testRunTasks.forEach { testTaskModel ->
                     add(testTaskModel.taskName)
                 }
             }
@@ -98,7 +95,7 @@ open class KotlinTestTasksResolver : AbstractProjectResolverExtension() {
 
         val testExecutionExpected = parameters[GradleProjectResolverExtension.TEST_EXECUTION_EXPECTED_KEY]
 
-        if (Boolean.valueOf(testExecutionExpected)) {
+        if (java.lang.Boolean.valueOf(testExecutionExpected)) {
             try {
                 val addTestListenerScript = javaClass
                     .getResourceAsStream("/org/jetbrains/kotlin/idea/gradle/testing/addKotlinMppTestListener.groovy")

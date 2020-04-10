@@ -28,6 +28,7 @@ import org.jetbrains.kotlin.codegen.context.*;
 import org.jetbrains.kotlin.codegen.coroutines.CoroutineCodegenForLambda;
 import org.jetbrains.kotlin.codegen.coroutines.CoroutineCodegenUtilKt;
 import org.jetbrains.kotlin.codegen.coroutines.ResolvedCallWithRealDescriptor;
+import org.jetbrains.kotlin.codegen.coroutines.SuspensionPointKind;
 import org.jetbrains.kotlin.codegen.extensions.ExpressionCodegenExtension;
 import org.jetbrains.kotlin.codegen.inline.*;
 import org.jetbrains.kotlin.codegen.intrinsics.*;
@@ -1023,7 +1024,7 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
             @NotNull FunctionDescriptor descriptor,
             @NotNull FunctionGenerationStrategy strategy,
             @Nullable SamType samType,
-            @Nullable FunctionDescriptor functionReferenceTarget,
+            @Nullable ResolvedCall<FunctionDescriptor> functionReferenceCall,
             @Nullable StackValue functionReferenceReceiver
     ) {
         ClassBuilder cv = state.getFactory().newVisitor(
@@ -1033,14 +1034,19 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
         );
 
         ClosureCodegen coroutineCodegen = CoroutineCodegenForLambda.create(this, descriptor, declaration, cv);
-        ClosureContext closureContext = descriptor.isSuspend() ? this.context.intoCoroutineClosure(
-                CoroutineCodegenUtilKt.getOrCreateJvmSuspendFunctionView(descriptor, state),
-                descriptor, this, state.getTypeMapper()
-        ) : this.context.intoClosure(descriptor, this, typeMapper);
-        ClosureCodegen closureCodegen = coroutineCodegen != null ? coroutineCodegen : new ClosureCodegen(
-                state, declaration, samType, closureContext,
-                functionReferenceTarget, strategy, parentCodegen, cv
-        );
+        ClosureContext closureContext =
+                descriptor.isSuspend()
+                ? this.context.intoCoroutineClosure(
+                        CoroutineCodegenUtilKt.getOrCreateJvmSuspendFunctionView(descriptor, state),
+                        descriptor, this, state.getTypeMapper()
+                )
+                : this.context.intoClosure(descriptor, this, typeMapper);
+        ClosureCodegen closureCodegen =
+                coroutineCodegen != null
+                ? coroutineCodegen
+                : new ClosureCodegen(
+                        state, declaration, samType, closureContext, functionReferenceCall, strategy, parentCodegen, cv
+                );
 
         closureCodegen.generate();
 
@@ -1648,7 +1654,7 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
             }
             else {
                 returnType = this.returnType;
-                returnKotlinType = this.context.getFunctionDescriptor().getReturnType();
+                returnKotlinType = typeMapper.getReturnValueType(this.context.getFunctionDescriptor());
             }
             StackValue valueToReturn = returnedExpression != null ? gen(returnedExpression) : StackValue.none();
 
@@ -1701,7 +1707,10 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
                             BindingContextUtils.getContainingFunctionSkipFunctionLiterals(descriptor, true).getFirst();
                     //FIRST_FUN_LABEL to prevent clashing with existing labels
                     return new NonLocalReturnInfo(
-                            new JvmKotlinType(typeMapper.mapReturnType(containingFunction), containingFunction.getReturnType()),
+                            new JvmKotlinType(
+                                    typeMapper.mapReturnType(containingFunction),
+                                    typeMapper.getReturnValueType(containingFunction)
+                            ),
                             FIRST_FUN_LABEL
                     );
                 } else {
@@ -1739,7 +1748,9 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
                 : returnType;
 
         KotlinType kotlinTypeForExpression =
-                isBlockedNamedFunction || isVoidCoroutineLambda ? null : context.getFunctionDescriptor().getReturnType();
+                isBlockedNamedFunction || isVoidCoroutineLambda
+                ? null
+                : typeMapper.getReturnValueType(context.getFunctionDescriptor());
 
         gen(expr, typeForExpression, kotlinTypeForExpression);
 
@@ -2582,11 +2593,12 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
             return;
         }
 
-        boolean isSuspendNoInlineCall =
-                CoroutineCodegenUtilKt.isSuspendNoInlineCall(resolvedCall, this, state.getLanguageVersionSettings());
+        SuspensionPointKind suspensionPointKind =
+                CoroutineCodegenUtilKt.isSuspensionPoint(resolvedCall, this, state.getLanguageVersionSettings());
+        boolean maybeSuspensionPoint = suspensionPointKind != SuspensionPointKind.NEVER;
         boolean isConstructor = resolvedCall.getResultingDescriptor() instanceof ConstructorDescriptor;
         if (!(callableMethod instanceof IntrinsicWithSpecialReceiver)) {
-            putReceiverAndInlineMarkerIfNeeded(callableMethod, resolvedCall, receiver, isSuspendNoInlineCall, isConstructor);
+            putReceiverAndInlineMarkerIfNeeded(callableMethod, resolvedCall, receiver, maybeSuspensionPoint, isConstructor);
         }
 
         callGenerator.processAndPutHiddenParameters(false);
@@ -2620,22 +2632,27 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
             }
         }
 
-        if (isSuspendNoInlineCall) {
-            addSuspendMarker(v, true);
+        if (maybeSuspensionPoint) {
+            addSuspendMarker(v, true, suspensionPointKind == SuspensionPointKind.NOT_INLINE);
         }
 
         callGenerator.genCall(callableMethod, resolvedCall, defaultMaskWasGenerated, this);
 
-        if (isSuspendNoInlineCall) {
+        if (maybeSuspensionPoint) {
             addReturnsUnitMarkerIfNecessary(v, resolvedCall);
-
-            addSuspendMarker(v, false);
+            addSuspendMarker(v, false, suspensionPointKind == SuspensionPointKind.NOT_INLINE);
             addInlineMarker(v, false);
         }
 
         KotlinType returnType = resolvedCall.getResultingDescriptor().getReturnType();
         if (returnType != null && KotlinBuiltIns.isNothing(returnType)) {
-            v.aconst(null);
+            if (state.getLanguageVersionSettings().getApiVersion().compareTo(ApiVersion.KOTLIN_1_4) >= 0) {
+                v.anew(Type.getObjectType("kotlin/KotlinNothingValueException"));
+                v.dup();
+                v.invokespecial("kotlin/KotlinNothingValueException", "<init>", "()V", false);
+            } else {
+                v.aconst(null);
+            }
             v.athrow();
         }
     }
@@ -2803,7 +2820,7 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
             KotlinType approximatedType =
                     CapturedTypeConstructorKt.isCaptured(type) ?
                     (KotlinType) approximator.approximateToSuperType(
-                            type, TypeApproximatorConfiguration.CapturedAndIntegerLiteralsTypesApproximation.INSTANCE
+                            type, TypeApproximatorConfiguration.InternalTypesApproximation.INSTANCE
                     ) : null;
             return approximatedType != null ? approximatedType : type;
         } else {
@@ -3131,15 +3148,16 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
         List<ValueArgument> arguments = valueArgument.getArguments();
         int size = arguments.size();
 
-        boolean hasSpread = false;
-        for (int i = 0; i != size; ++i) {
-            if (arguments.get(i).getSpreadElement() != null) {
-                hasSpread = true;
-                break;
-            }
-        }
+        // Named arguments in vararg are treated as having an implicit spread operator.
+        // There can be only single such argument for a given vararg parameter, but here it doesn't really matter:
+        // we'll just build a copy of array as if an array argument was passed as positional with an explicit spread operator.
+        boolean hasSpreadOperator =
+                state.getLanguageVersionSettings()
+                        .supportsFeature(LanguageFeature.AllowAssigningArrayElementsToVarargsInNamedFormForFunctions)
+                ? arguments.stream().anyMatch(argument -> argument.getSpreadElement() != null || argument.isNamed())
+                : arguments.stream().anyMatch(argument -> argument.getSpreadElement() != null);
 
-        if (hasSpread) {
+        if (hasSpreadOperator) {
             boolean arrayOfReferences = KotlinBuiltIns.isArray(outType);
             if (size == 1) {
                 Type arrayType = getArrayType(arrayOfReferences ? AsmTypes.OBJECT_TYPE : elementType);
@@ -3256,6 +3274,7 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public StackValue visitCallableReferenceExpression(@NotNull KtCallableReferenceExpression expression, StackValue data) {
         ResolvedCall<?> resolvedCall = CallUtilKt.getResolvedCallWithAssert(expression.getCallableReference(), bindingContext);
 
@@ -3269,10 +3288,7 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
                     null, false
             );
 
-            return genClosure(
-                    expression, functionDescriptor, strategy, null,
-                    (FunctionDescriptor) resolvedCall.getResultingDescriptor(), receiver
-            );
+            return genClosure(expression, functionDescriptor, strategy, null, (ResolvedCall<FunctionDescriptor>) resolvedCall, receiver);
         }
 
         return generatePropertyReference(
@@ -3397,7 +3413,7 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
         StackValue result;
 
         if (!isPrimitive(expressionType(expression.getReceiverExpression()))) {
-            result = new StackValue.SafeFallback(type, ifnull, newReceiver);
+            result = new StackValue.SafeFallback(type, kotlinType, ifnull, newReceiver);
         } else {
             result = newReceiver;
         }
@@ -4361,7 +4377,6 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
 
         return StackValue.none();
     }
-
     @Override
     public StackValue visitDestructuringDeclaration(@NotNull KtDestructuringDeclaration multiDeclaration, StackValue receiver) {
         return initializeDestructuringDeclaration(multiDeclaration, false);

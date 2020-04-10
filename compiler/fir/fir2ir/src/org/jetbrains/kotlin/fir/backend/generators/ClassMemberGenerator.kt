@@ -5,10 +5,7 @@
 
 package org.jetbrains.kotlin.fir.backend.generators
 
-import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.PropertyDescriptor
-import org.jetbrains.kotlin.descriptors.Visibilities
-import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.fir.backend.*
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.impl.FirDefaultPropertyGetter
@@ -20,15 +17,12 @@ import org.jetbrains.kotlin.fir.references.FirResolvedNamedReference
 import org.jetbrains.kotlin.fir.symbols.impl.FirConstructorSymbol
 import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.ir.declarations.*
-import org.jetbrains.kotlin.ir.declarations.impl.IrFieldImpl
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrFieldAccessExpression
-import org.jetbrains.kotlin.ir.expressions.IrSyntheticBodyKind
 import org.jetbrains.kotlin.ir.expressions.impl.*
 import org.jetbrains.kotlin.ir.symbols.IrConstructorSymbol
 import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.util.*
-import org.jetbrains.kotlin.name.Name
 
 internal class ClassMemberGenerator(
     private val components: Fir2IrComponents,
@@ -37,7 +31,9 @@ internal class ClassMemberGenerator(
     fakeOverrideMode: FakeOverrideMode
 ) : Fir2IrComponents by components {
 
-    private val fakeOverrideGenerator = FakeOverrideGenerator(session, declarationStorage, conversionScope, fakeOverrideMode)
+    private val fakeOverrideGenerator = FakeOverrideGenerator(
+        session, components.scopeSession, declarationStorage, conversionScope, fakeOverrideMode
+    )
 
     private fun FirTypeRef.toIrType(): IrType = with(typeConverter) { toIrType() }
 
@@ -58,17 +54,19 @@ internal class ClassMemberGenerator(
                     convertFunctionContent(irPrimaryConstructor, primaryConstructor)
                 }
             }
-            val processedCallableNames = mutableListOf<Name>()
-            klass.declarations.forEach {
-                if (it !is FirTypeAlias && (it !is FirConstructor || !it.isPrimary)) {
-                    it.accept(visitor, null)
-                    when (it) {
-                        is FirSimpleFunction -> processedCallableNames += it.name
-                        is FirProperty -> processedCallableNames += it.name
-                    }
+            val processedCallableNames = klass.declarations.mapNotNullTo(mutableListOf()) {
+                when (it) {
+                    is FirSimpleFunction -> it.name
+                    is FirProperty -> it.name
+                    else -> null
                 }
             }
             with(fakeOverrideGenerator) { irClass.addFakeOverrides(klass, processedCallableNames) }
+            klass.declarations.forEach {
+                if (it !is FirTypeAlias && (it !is FirConstructor || !it.isPrimary)) {
+                    it.accept(visitor, null)
+                }
+            }
             annotations = klass.annotations.mapNotNull {
                 it.accept(visitor, null) as? IrConstructorCall
             }
@@ -135,25 +133,8 @@ internal class ClassMemberGenerator(
         val descriptor = irProperty.descriptor
         val initializer = property.initializer
         val delegate = property.delegate
-        val irParent = irProperty.parent
         val propertyType = property.returnTypeRef.toIrType()
-        // TODO: this checks are very preliminary, FIR resolve should determine backing field presence itself
-        // TODO (2): backing field should be created inside declaration storage
-        if (property.modality != Modality.ABSTRACT && (irParent !is IrClass || !irParent.isInterface)) {
-            if (initializer != null || property.getter is FirDefaultPropertyGetter ||
-                property.isVar && property.setter is FirDefaultPropertySetter
-            ) {
-                irProperty.backingField = irProperty.createBackingField(
-                    property, IrDeclarationOrigin.PROPERTY_BACKING_FIELD, descriptor,
-                    Visibilities.PRIVATE, property.name, property.isVal, initializer, propertyType
-                )
-            } else if (delegate != null) {
-                irProperty.backingField = irProperty.createBackingField(
-                    property, IrDeclarationOrigin.PROPERTY_DELEGATE, descriptor,
-                    Visibilities.PRIVATE, Name.identifier("${property.name}\$delegate"), true, delegate
-                )
-            }
-        }
+        irProperty.initializeBackingField(descriptor, initializerExpression = initializer ?: delegate)
         irProperty.getter?.setPropertyAccessorContent(
             property.getter, irProperty, propertyType, property.getter is FirDefaultPropertyGetter
         )
@@ -168,35 +149,14 @@ internal class ClassMemberGenerator(
         return irProperty
     }
 
-    private fun IrProperty.createBackingField(
-        property: FirProperty,
-        origin: IrDeclarationOrigin,
-        descriptor: PropertyDescriptor,
-        visibility: Visibility,
-        name: Name,
-        isFinal: Boolean,
-        firInitializerExpression: FirExpression?,
-        type: IrType? = null
-    ): IrField {
-        val inferredType = type ?: firInitializerExpression!!.typeRef.toIrType()
-        val irField = symbolTable.declareField(
-            startOffset, endOffset, origin, descriptor, inferredType
-        ) { symbol ->
-            IrFieldImpl(
-                startOffset, endOffset, origin, symbol,
-                name, inferredType,
-                visibility, isFinal = isFinal, isExternal = false,
-                isStatic = property.isStatic || parent !is IrClass,
-                isFakeOverride = origin == IrDeclarationOrigin.FAKE_OVERRIDE
-            )
-        }
-        return conversionScope.withParent(applyParentFromStackTo(irField)) {
+    private fun IrProperty.initializeBackingField(descriptor: PropertyDescriptor, initializerExpression: FirExpression?) {
+        val irField = backingField ?: return
+        conversionScope.withParent(irField) {
             declarationStorage.enterScope(descriptor)
-            if (firInitializerExpression != null) {
-                val initializerExpression = visitor.convertToIrExpression(firInitializerExpression)
-                initializer = IrExpressionBodyImpl(initializerExpression)
+            // NB: initializer can be already converted
+            if (initializer == null && initializerExpression != null) {
+                initializer = IrExpressionBodyImpl(visitor.convertToIrExpression(initializerExpression))
             }
-            correspondingPropertySymbol = this@createBackingField.symbol
             declarationStorage.leaveScope(descriptor)
         }
     }

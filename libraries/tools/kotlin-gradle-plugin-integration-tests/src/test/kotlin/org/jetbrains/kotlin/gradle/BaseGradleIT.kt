@@ -199,6 +199,7 @@ abstract class BaseGradleIT {
         val daemonOptionSupported: Boolean = true,
         val incremental: Boolean? = null,
         val incrementalJs: Boolean? = null,
+        val incrementalJsKlib: Boolean? = null,
         val jsIrBackend: Boolean? = null,
         val androidHome: File? = null,
         val javaHome: File? = null,
@@ -215,7 +216,12 @@ abstract class BaseGradleIT {
         val jsCompilerType: KotlinJsCompilerType? = null
     )
 
-    data class KaptOptions(val verbose: Boolean, val useWorkers: Boolean, val incrementalKapt: Boolean = false, val includeCompileClasspath: Boolean = true)
+    data class KaptOptions(
+        val verbose: Boolean,
+        val useWorkers: Boolean,
+        val incrementalKapt: Boolean = false,
+        val includeCompileClasspath: Boolean = true
+    )
 
     open inner class Project(
         val projectName: String,
@@ -630,13 +636,11 @@ Finished executing task ':$taskName'|
         }
 
     fun Project.gradleProperties(): File =
-        listOf("gradle.properties").map {
-            File(projectDir, it).also { file ->
-                if (!file.exists()) {
-                    file.createNewFile()
-                }
+        File(projectDir, "gradle.properties").also { file ->
+            if (!file.exists()) {
+                file.createNewFile()
             }
-        }.single()
+        }
 
     /**
      * @param assertionFileName path to xml with expected test results, relative to test resources root
@@ -709,7 +713,7 @@ Finished executing task ':$taskName'|
     }
 
     private fun prettyPrintXml(uglyXml: String): String =
-            XMLOutputter(Format.getPrettyFormat()).outputString(SAXBuilder().build(uglyXml.reader()))
+        XMLOutputter(Format.getPrettyFormat()).outputString(SAXBuilder().build(uglyXml.reader()))
 
     private fun Project.createGradleTailParameters(options: BuildOptions, params: Array<out String> = arrayOf()): List<String> =
         params.toMutableList().apply {
@@ -733,6 +737,7 @@ Finished executing task ':$taskName'|
                 add("-Pkotlin.incremental=$it")
             }
             options.incrementalJs?.let { add("-Pkotlin.incremental.js=$it") }
+            options.incrementalJsKlib?.let { add("-Pkotlin.incremental.js.klib=$it") }
             options.jsIrBackend?.let { add("-Pkotlin.js.useIrBackend=$it") }
             options.usePreciseJavaTracking?.let { add("-Pkotlin.incremental.usePreciseJavaTracking=$it") }
             options.androidGradlePluginVersion?.let { add("-Pandroid_tools_version=$it") }

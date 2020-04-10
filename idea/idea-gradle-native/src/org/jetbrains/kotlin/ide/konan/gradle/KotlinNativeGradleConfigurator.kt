@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.ide.konan.hasKotlinNativeRuntimeInScope
 import org.jetbrains.kotlin.idea.configuration.ConfigureKotlinStatus
 import org.jetbrains.kotlin.idea.configuration.KotlinWithGradleConfigurator
 import org.jetbrains.kotlin.idea.configuration.ModuleSourceRootGroup
-import org.jetbrains.kotlin.platform.konan.KonanPlatforms
+import org.jetbrains.kotlin.platform.konan.NativePlatforms
 
 open class KotlinNativeGradleConfigurator : KotlinWithGradleConfigurator() {
     override fun getKotlinPluginExpression(forKotlinDsl: Boolean): String = ""
@@ -29,15 +29,15 @@ open class KotlinNativeGradleConfigurator : KotlinWithGradleConfigurator() {
 
     override val name: String get() = NAME
 
-    override val targetPlatform get() = KonanPlatforms.defaultKonanPlatform
+    override val targetPlatform get() = NativePlatforms.defaultNativePlatform
 
     @Suppress("DEPRECATION_ERROR")
-    override fun getTargetPlatform() = KonanPlatforms.CompatKonanPlatform
+    override fun getTargetPlatform() = NativePlatforms.CompatNativePlatform
 
     override val presentableText get() = PRESENTABLE_TEXT
 
     companion object {
         const val NAME = "KotlinNative"
-        val PRESENTABLE_TEXT = KotlinGradleNativeBundle.message("native.gradle.name.short")
+        val PRESENTABLE_TEXT get() = KotlinGradleNativeBundle.message("native.gradle.name.short")
     }
 }

@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.metadata.deserialization.*
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.serialization.deserialization.ProtoEnumFlags
+import org.jetbrains.kotlin.serialization.deserialization.builtins.BuiltInSerializerProtocol
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedContainerSource
 import org.jetbrains.kotlin.serialization.deserialization.getName
 
@@ -37,6 +38,7 @@ class FirDeserializationContext(
     val relativeClassName: FqName?,
     val typeDeserializer: FirTypeDeserializer,
     val annotationDeserializer: AbstractAnnotationDeserializer,
+    val containerSource: DeserializedContainerSource?,
     val components: FirDeserializationComponents
 ) {
     fun childContext(
@@ -49,7 +51,7 @@ class FirDeserializationContext(
         FirTypeDeserializer(
             session, nameResolver, typeTable, typeParameterProtos, typeDeserializer
         ),
-        annotationDeserializer, components
+        annotationDeserializer, containerSource, components
     )
 
     val memberDeserializer: FirMemberDeserializer = FirMemberDeserializer(this)
@@ -60,7 +62,8 @@ class FirDeserializationContext(
             packageProto: ProtoBuf.Package,
             nameResolver: NameResolver,
             session: FirSession,
-            annotationDeserializer: AbstractAnnotationDeserializer
+            annotationDeserializer: AbstractAnnotationDeserializer,
+            containerSource: DeserializedContainerSource?
         ) = createRootContext(
             nameResolver,
             TypeTable(packageProto.typeTable),
@@ -68,7 +71,8 @@ class FirDeserializationContext(
             annotationDeserializer,
             fqName,
             relativeClassName = null,
-            typeParameterProtos = emptyList()
+            typeParameterProtos = emptyList(),
+            containerSource
         )
 
         fun createForClass(
@@ -76,7 +80,8 @@ class FirDeserializationContext(
             classProto: ProtoBuf.Class,
             nameResolver: NameResolver,
             session: FirSession,
-            annotationDeserializer: AbstractAnnotationDeserializer
+            annotationDeserializer: AbstractAnnotationDeserializer,
+            containerSource: DeserializedContainerSource?
         ) = createRootContext(
             nameResolver,
             TypeTable(classProto.typeTable),
@@ -84,7 +89,8 @@ class FirDeserializationContext(
             annotationDeserializer,
             classId.packageFqName,
             classId.relativeClassName,
-            classProto.typeParameterList
+            classProto.typeParameterList,
+            containerSource
         )
 
         private fun createRootContext(
@@ -94,7 +100,8 @@ class FirDeserializationContext(
             annotationDeserializer: AbstractAnnotationDeserializer,
             packageFqName: FqName,
             relativeClassName: FqName?,
-            typeParameterProtos: List<ProtoBuf.TypeParameter>
+            typeParameterProtos: List<ProtoBuf.TypeParameter>,
+            containerSource: DeserializedContainerSource?
         ): FirDeserializationContext {
             return FirDeserializationContext(
                 nameResolver, typeTable,
@@ -110,6 +117,7 @@ class FirDeserializationContext(
                     null
                 ),
                 annotationDeserializer,
+                containerSource,
                 FirDeserializationComponents()
             )
         }
@@ -150,7 +158,7 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
         }
     }
 
-    fun loadProperty(proto: ProtoBuf.Property, containerSource: DeserializedContainerSource? = null): FirProperty {
+    fun loadProperty(proto: ProtoBuf.Property): FirProperty {
         val flags = if (proto.hasFlags()) proto.flags else loadOldFlags(proto.oldFlags)
         val callableName = c.nameResolver.getName(proto.name)
         val symbol = FirPropertySymbol(CallableId(c.packageFqName, c.relativeClassName, callableName))
@@ -185,11 +193,16 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
             setter = if (isVar) {
                 FirDefaultPropertySetter(null, c.session, returnTypeRef, ProtoEnumFlags.visibility(Flags.VISIBILITY.get(setterFlags)))
             } else null
-            this.containerSource = containerSource
+            this.containerSource = c.containerSource
+            this.initializer = if (Flags.HAS_CONSTANT.get(flags)) {
+                proto.getExtensionOrNull(BuiltInSerializerProtocol.compileTimeValue)?.let {
+                    c.annotationDeserializer.resolveValue(returnTypeRef, it, c.nameResolver)
+                }
+            } else null
         }
     }
 
-    fun loadFunction(proto: ProtoBuf.Function, containerSource: DeserializedContainerSource? = null): FirSimpleFunction {
+    fun loadFunction(proto: ProtoBuf.Function): FirSimpleFunction {
         val flags = if (proto.hasFlags()) proto.flags else loadOldFlags(proto.oldFlags)
 
         val receiverAnnotations =
@@ -229,7 +242,7 @@ class FirMemberDeserializer(private val c: FirDeserializationContext) {
             typeParameters += local.typeDeserializer.ownTypeParameters.map { it.fir }
             valueParameters += local.memberDeserializer.valueParameters(proto.valueParameterList)
             annotations += local.annotationDeserializer.loadFunctionAnnotations(proto, local.nameResolver)
-            this.containerSource = containerSource
+            this.containerSource = c.containerSource
         }
         if (proto.hasContract()) {
             val contractDescription = contractDeserializer.loadContract(proto.contract, simpleFunction)

@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
 import org.jetbrains.kotlin.descriptors.commonizer.*
 import org.jetbrains.kotlin.descriptors.commonizer.Target
 import org.jetbrains.kotlin.descriptors.commonizer.utils.ResettableClockMark
+import org.jetbrains.kotlin.descriptors.konan.NATIVE_STDLIB_MODULE_NAME
 import org.jetbrains.kotlin.konan.library.*
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.jetbrains.kotlin.library.KotlinLibrary
@@ -221,7 +222,8 @@ class NativeDistributionCommonizer(
             manifestData.uniqueName,
             manifestData.versions,
             BuiltInsPlatform.NATIVE,
-            nopack = true
+            nopack = true,
+            shortName = manifestData.shortName
         )
         library.addMetadata(metadata)
         manifestData.applyTo(library.base as BaseWriterImpl)
@@ -229,9 +231,7 @@ class NativeDistributionCommonizer(
     }
 
     private companion object {
-        val stdlibName = Name.special("<$KONAN_STDLIB_NAME>")
-
         fun shouldBeSerialized(libraryName: Name) =
-            libraryName != stdlibName && libraryName != KlibResolvedModuleDescriptorsFactoryImpl.FORWARD_DECLARATIONS_MODULE_NAME
+            libraryName != NATIVE_STDLIB_MODULE_NAME && libraryName != KlibResolvedModuleDescriptorsFactoryImpl.FORWARD_DECLARATIONS_MODULE_NAME
     }
 }

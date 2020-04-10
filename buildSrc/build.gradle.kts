@@ -5,7 +5,8 @@ buildscript {
     val cacheRedirectorEnabled = findProperty("cacheRedirectorEnabled")?.toString()?.toBoolean() == true
 
     extra["defaultSnapshotVersion"] = kotlinBuildProperties.defaultSnapshotVersion
-    kotlinBootstrapFrom(BootstrapOption.BintrayBootstrap(kotlinBuildProperties.kotlinBootstrapVersion!!, cacheRedirectorEnabled))
+    BootstrapOption.BintrayBootstrap("1.4.0-dev-1818", cacheRedirectorEnabled).applyToProject(project)
+//    kotlinBootstrapFrom(BootstrapOption.BintrayBootstrap(kotlinBuildProperties.kotlinBootstrapVersion!!, cacheRedirectorEnabled))
 
     repositories {
         if (cacheRedirectorEnabled) {
@@ -22,7 +23,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("org.jetbrains.kotlin:kotlin-build-gradle-plugin:0.0.15")
+        classpath("org.jetbrains.kotlin:kotlin-build-gradle-plugin:0.0.17")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${project.bootstrapKotlinVersion}")
         classpath("org.jetbrains.kotlin:kotlin-sam-with-receiver:${project.bootstrapKotlinVersion}")
     }
@@ -53,6 +54,10 @@ gradlePlugin {
             implementationClass = "org.jetbrains.kotlin.pill.JpsCompatiblePlugin"
         }
     }
+}
+
+kotlinDslPluginOptions {
+    experimentalWarning.set(false)
 }
 
 fun Project.getBooleanProperty(name: String): Boolean? = this.findProperty(name)?.let {
@@ -93,7 +98,7 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib", embeddedKotlinVersion))
-    implementation("org.jetbrains.kotlin:kotlin-build-gradle-plugin:0.0.15")
+    implementation("org.jetbrains.kotlin:kotlin-build-gradle-plugin:0.0.17")
 
     implementation("net.rubygrapefruit:native-platform:${property("versions.native-platform")}")
     implementation("net.rubygrapefruit:native-platform-windows-amd64:${property("versions.native-platform")}")

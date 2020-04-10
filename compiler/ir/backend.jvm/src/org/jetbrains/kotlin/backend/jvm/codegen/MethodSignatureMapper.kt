@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.backend.jvm.JvmLoweredDeclarationOrigin
 import org.jetbrains.kotlin.backend.jvm.ir.getJvmNameFromAnnotation
 import org.jetbrains.kotlin.backend.jvm.ir.hasJvmDefault
+import org.jetbrains.kotlin.backend.jvm.ir.isCompiledToJvmDefault
 import org.jetbrains.kotlin.backend.jvm.ir.propertyIfAccessor
 import org.jetbrains.kotlin.backend.jvm.lower.*
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
@@ -159,7 +160,9 @@ class MethodSignatureMapper(private val context: JvmBackendContext) {
         }
 
         val typeMappingModeFromAnnotation =
-            typeSystem.extractTypeMappingModeFromAnnotation(declaration.suppressWildcardsMode(), returnType, isAnnotationMethod)
+            typeSystem.extractTypeMappingModeFromAnnotation(
+                declaration.suppressWildcardsMode(), returnType, isAnnotationMethod, mapTypeAliases = false
+            )
         if (typeMappingModeFromAnnotation != null) {
             return typeMapper.mapType(returnType, typeMappingModeFromAnnotation, sw)
         }
@@ -259,7 +262,9 @@ class MethodSignatureMapper(private val context: JvmBackendContext) {
         }
 
         val mode = with(typeSystem) {
-            extractTypeMappingModeFromAnnotation(declaration.suppressWildcardsMode(), type, isForAnnotationParameter = false)
+            extractTypeMappingModeFromAnnotation(
+                declaration.suppressWildcardsMode(), type, isForAnnotationParameter = false, mapTypeAliases = false
+            )
                 ?: if (declaration.isMethodWithDeclarationSiteWildcards && type.argumentsCount() != 0) {
                     TypeMappingMode.GENERIC_ARGUMENT // Render all wildcards
                 } else {
@@ -354,7 +359,9 @@ class MethodSignatureMapper(private val context: JvmBackendContext) {
                 current = classCallable
                 continue
             }
-            if (isSuperCall && !current.hasJvmDefault() && !current.parentAsClass.isInterface) {
+            if (isSuperCall && !current.parentAsClass.isInterface &&
+                current.resolveFakeOverride()?.isCompiledToJvmDefault(context.state.jvmDefaultMode) != true
+            ) {
                 return current
             }
 
