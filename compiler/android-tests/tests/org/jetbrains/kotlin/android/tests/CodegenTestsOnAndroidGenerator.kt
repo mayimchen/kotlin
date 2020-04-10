@@ -31,22 +31,66 @@ import kotlin.test.assertTrue
 data class ConfigurationKey(val kind: ConfigurationKind, val jdkKind: TestJdkKind, val configuration: String)
 
 class CodegenTestsOnAndroidGenerator private constructor(private val pathManager: PathManager) {
-    private var writtenFilesCount = 0
-
     private var currentModuleIndex = 1
 
     private val pathFilter: String? = System.getProperties().getProperty("kotlin.test.android.path.filter")
 
-    private val pendingUnitTestGenerators = hashMapOf<Int, UnitTestFileWriter>()
+    private val pendingUnitTestGenerators = hashMapOf<String, UnitTestFileWriter>()
 
     //keep it globally to avoid test grouping on TC
     private val generatedTestNames = hashSetOf<String>()
 
-    fun getFlavorUnitTestFilePath(index: Int): String {
-        return pathManager.srcFolderInAndroidTmpFolder + "/androidTestKtest$index/java/" + testClassPackage.replace(
-            ".",
-            "/"
-        ) + "/" + testClassName + "$index.java"
+    private val COMMON = FlavorTestCompiler("common", 3);
+    private val REFLECT = FlavorTestCompiler("reflect", 1);
+    private val JVM8 = FlavorTestCompiler("jvm8", 1);
+
+    inner class FlavorTestCompiler(private val prefix: String, val limit: Int) {
+
+        private var writtenFilesCount = 0
+
+        internal fun writeFiles(
+            filesToCompile: List<KtFile>,
+            environment: KotlinCoreEnvironment,
+            unitTestDescriptions: ArrayList<TestInfo>
+        ) {
+            if (filesToCompile.isEmpty()) return
+
+            //2500 files per folder that would be used by flavor to avoid multidex usage,
+            // each folder would be jared by build.gradle script
+            writtenFilesCount += filesToCompile.size
+            val index = writtenFilesCount / 2500
+            val outputDir = File(pathManager.getOutputForCompiledFiles(index, prefix))
+            assertTrue("Add flavors for ${pathManager.getFlavourName(index, prefix)}") { index < limit }
+
+            println("Generating ${filesToCompile.size} files into ${outputDir.name}, configuration: '${environment.configuration}'...")
+
+            val outputFiles = GenerationUtils.compileFiles(filesToCompile, environment).run { destroy(); factory }
+
+            if (!outputDir.exists()) {
+                outputDir.mkdirs()
+            }
+            Assert.assertTrue("Cannot create directory for compiled files", outputDir.exists())
+            val unitTestFileWriter = pendingUnitTestGenerators.getOrPut(prefix + index) {
+                UnitTestFileWriter(
+                    getFlavorUnitTestFilePath(index),
+                    index,
+                    prefix,
+                    generatedTestNames
+                )
+            }
+            unitTestFileWriter.addTests(unitTestDescriptions)
+            outputFiles.writeAllTo(outputDir)
+        }
+
+        fun printStatistics() {
+            println("FlavorTestCompiler: $prefix, generated file count: $writtenFilesCount")
+        }
+
+        private fun getFlavorUnitTestFilePath(index: Int): String {
+            return pathManager.srcFolderInAndroidTmpFolder +
+                    "/androidTest${pathManager.getFlavourName(index, prefix).capitalize()}/java/" +
+                    testClassPackage.replace(".", "/") + "/" + testClassName + "$prefix$index.java"
+        }
     }
 
     private fun prepareAndroidModuleAndGenerateTests(skipSdkDirWriting: Boolean) {
@@ -126,9 +170,14 @@ class CodegenTestsOnAndroidGenerator private constructor(private val pathManager
         holders.values.forEach {
             it.writeFilesOnDisk()
         }
+
+        COMMON.printStatistics()
+        JVM8.printStatistics()
+        REFLECT.printStatistics()
     }
 
     internal inner class FilesWriter(
+        val kind: ConfigurationKind,
         private val configuration: CompilerConfiguration
     ) {
         private val rawFiles = arrayListOf<TestClassInfo>()
@@ -155,47 +204,20 @@ class CodegenTestsOnAndroidGenerator private constructor(private val pathManager
                 EnvironmentConfigFiles.JVM_CONFIG_FILES
             )
 
-            writeFiles(
+            val compiler = if (kind.withReflection) REFLECT else COMMON
+
+            compiler.writeFiles(
                 rawFiles.map {
                     try {
                         CodegenTestFiles.create(it.name, it.content, environment.project).psiFile
                     } catch (e: Throwable) {
                         throw RuntimeException("Error on processing ${it.name}:\n${it.content}", e)
                     }
-                }, environment
+                }, environment, unitTestDescriptions
             )
             Disposer.dispose(disposable)
             rawFiles.clear()
             unitTestDescriptions.clear()
-        }
-
-        private fun writeFiles(filesToCompile: List<KtFile>, environment: KotlinCoreEnvironment) {
-            if (filesToCompile.isEmpty()) return
-
-            //2500 files per folder that would be used by flavor to avoid multidex usage,
-            // each folder would be jared by build.gradle script
-            writtenFilesCount += filesToCompile.size
-            val index = writtenFilesCount / 2500
-            val outputDir = File(pathManager.getOutputForCompiledFiles(index))
-            assertTrue("Add flavors for ktest$index") { index < 3 }
-
-            println("Generating ${filesToCompile.size} files into ${outputDir.name}, configuration: '${environment.configuration}'...")
-
-            val outputFiles = GenerationUtils.compileFiles(filesToCompile, environment).run { destroy(); factory }
-
-            if (!outputDir.exists()) {
-                outputDir.mkdirs()
-            }
-            Assert.assertTrue("Cannot create directory for compiled files", outputDir.exists())
-            val unitTestFileWriter = pendingUnitTestGenerators.getOrPut(index) {
-                UnitTestFileWriter(
-                    getFlavorUnitTestFilePath(index),
-                    index,
-                    generatedTestNames
-                )
-            }
-            unitTestFileWriter.addTests(unitTestDescriptions)
-            outputFiles.writeAllTo(outputDir)
         }
 
         fun addTest(testFiles: List<TestClassInfo>, info: TestInfo) {
@@ -259,7 +281,7 @@ class CodegenTestsOnAndroidGenerator private constructor(private val pathManager
 
                     val key = ConfigurationKey(kind, jdkKind, keyConfiguration.toString())
                     val filesHolder = holders.getOrPut(key) {
-                        FilesWriter(KotlinTestUtils.newConfiguration(kind, jdkKind, KotlinTestUtils.getAnnotationsJar()).apply {
+                        FilesWriter(kind, KotlinTestUtils.newConfiguration(kind, jdkKind, KotlinTestUtils.getAnnotationsJar()).apply {
                             println("Creating new configuration by $key")
                             CodegenTestCase.updateConfigurationByDirectivesInTestFiles(testFiles, this)
                         })

@@ -62,15 +62,23 @@ android {
     flavorDimensions "box"
 
     productFlavors {
-        ktest0 {
+        common0 {
             dimension "box"
         }
 
-        ktest1 {
+        common1 {
             dimension "box"
         }
 
-        ktest2 {
+        common2 {
+            dimension "box"
+        }
+
+        reflect0 {
+            dimension "box"
+        }
+
+        jvm80 {
             dimension "box"
         }
     }
@@ -80,9 +88,9 @@ android {
 task jarTestFolders() {
     println "Jar folders..."
     new File("${projectDir}/libs/").listFiles().each { File file ->
-        if (file.isDirectory() && !file.name.equals("test")) {
+        if (file.isDirectory() && file.name != "generated") {
             println "Jar '${file.name}' folder..."
-            ant.jar(basedir: "libs/${file.name}/", destfile: "libs/test/" +  file.name  + ".jar")
+            ant.jar(basedir: "libs/${file.name}/", destfile: "libs/" +  file.name  + ".jar")
         }
     }
 }
@@ -92,11 +100,18 @@ tasks.withType(JavaCompile) {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['kotlin-test.jar', 'kotlin-stdlib.jar'])
     androidTestImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
 
-    ktest0Implementation fileTree(dir: 'libs/test', include: ['libtest0.jar'])
-    ktest1Implementation fileTree(dir: 'libs/test', include: ['libtest1.jar'])
-    ktest2Implementation fileTree(dir: 'libs/test', include: ['libtest2.jar'])
+    common0Implementation fileTree(dir: 'libs', include: ['common0.jar'])
+    common1Implementation fileTree(dir: 'libs', include: ['common1.jar'])
+    common2Implementation fileTree(dir: 'libs', include: ['common2.jar'])
+
+    //reflect
+    reflect0Implementation fileTree(dir: 'libs', include: ['kotlin-reflect.jar'])
+    reflect0Implementation fileTree(dir: 'libs', include: ['reflect0.jar'])
+
+    //JVM 8
+    jvm80Implementation fileTree(dir: 'libs', include: ['jvm80.jar'])
 }

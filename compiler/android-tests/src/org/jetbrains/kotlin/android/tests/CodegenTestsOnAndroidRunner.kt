@@ -145,6 +145,12 @@ class CodegenTestsOnAndroidRunner private constructor(private val pathManager: P
         @Throws(IOException::class, SAXException::class, ParserConfigurationException::class)
         private fun parseSingleReportInFolder(folder: File): List<TestCase> {
             val files = folder.listFiles()!!
+            if (folder.name.contains("JVM8")) return listOf(object : TestCase("jvm8 stub") {
+                @Throws(Throwable::class)
+                override fun runTest() {
+
+                }
+            })
             assert(files.size == 1) {
                 "Expecting one file but ${files.size}: ${files.joinToString { it.name }} in ${folder.path}"
             }
